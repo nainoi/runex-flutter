@@ -1,4 +1,4 @@
-# runex
+# RUNEX Flutter
 
 A new Flutter project.
 
