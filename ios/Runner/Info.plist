@@ -78,6 +78,12 @@
 <key>FacebookDisplayName</key>
 <string>{your-app-name}</string>
 <key>LSApplicationQueriesSchemes</key>
+<!-- Geolocator config -->
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app needs access to location when open.</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>This app needs access to location when in the background.</string>
+<!-- Geolocator config -->
 <array>
   <string>fbapi</string>
   <string>fb-messenger-share-api</string>

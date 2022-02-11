@@ -37,6 +37,7 @@ dependencies:
   google_sign_in: ^5.2.3
   flutter_facebook_auth: ^4.0.1
   flutter_line_sdk: ^2.1.0
+  geolocator: ^8.1.1
 
 dev_dependencies:
   flutter_test:
