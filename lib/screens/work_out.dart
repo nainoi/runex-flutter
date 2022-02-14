@@ -1,8 +1,41 @@
-// ignore_for_file: prefer_const_constructors
+// ignore_for_file: prefer_const_constructors, unnecessary_new
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:workmanager/workmanager.dart';
+
+late ValueNotifier _positionStreamSubscription =
+    ValueNotifier(StreamSubscription<Position>);
+final LocationSettings _locationSettings =
+    LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 1);
+
+late ValueNotifier _latitude = ValueNotifier(<double>[]);
+late ValueNotifier _longitude = ValueNotifier(<double>[]);
+
+Future<void> _startRunex() async {
+  Workmanager().executeTask((task, inputData) async {
+    switch (task) {
+      case "fetchBackground":
+        print('######################### Call task #########################');
+        _positionStreamSubscription.value =
+            Geolocator.getPositionStream(locationSettings: _locationSettings)
+                .listen((Position? position) {
+          _latitude.value.add(position?.latitude.toDouble());
+          _longitude.value.add(position?.longitude.toDouble());
+          print('Position: ${position?.latitude.toString()}');
+        });
+        print('Value: ${_positionStreamSubscription.value}');
+        // Position userLocation = await Geolocator.getCurrentPosition(
+        //     desiredAccuracy: LocationAccuracy.high);
+        // notify.Notification notification = new notify.Notification();
+        // notification.showNotificationWithoutSound(userLocation);
+
+        // break;
+    }
+    return Future.value(true);
+  });
+}
 
 class WorkOut extends StatefulWidget {
   const WorkOut({Key? key}) : super(key: key);
@@ -13,55 +46,62 @@ class WorkOut extends StatefulWidget {
 
 class _WorkOutState extends State<WorkOut> {
   late bool _startedRunex = false;
-  late List _latitude = [];
-  late List _longitude = [];
 
-  final LocationSettings _locationSettings =
-      LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 1);
+  void _run() async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
-  Future<void> _startRunex() async {
     final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Location permission are permanently demied, we cannot request permission.');
-    } else if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied) {
       final permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
         return Future.error('Location permission are denied');
       }
     }
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-    if (serviceEnabled && !_startedRunex) {
-      setState(() {
-        _startedRunex = true;
-      });
-      // late int count = 0;
-      StreamSubscription<Position> positionStream =
-          Geolocator.getPositionStream(locationSettings: _locationSettings)
-              .listen((Position? position) {
-        setState(() {
-          _latitude.add(position?.latitude.toDouble());
-          _longitude.add(position?.longitude.toDouble());
-        });
-      });
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permission are permanently denied, we cannot request permission.');
     }
+    Workmanager().initialize(_startRunex, isInDebugMode: true);
+
+    // Workmanager().registerPeriodicTask("1", "fetchBackground",
+    //     frequency: Duration(minutes: 1));
+    Workmanager().registerOneOffTask('1', 'fetchBackground');
+    setState(() {
+      _startedRunex = true;
+    });
   }
 
   Future<void> _pauseRunex() async {
-    if (_startedRunex) {
+    if (!_positionStreamSubscription.value!.isPaused) {
       setState(() {
         _startedRunex = false;
+        //  _positionStreamSubscription.value = _positionStreamSubscription.value?.pause();
       });
+      print(
+          '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
+    }
+  }
+
+  Future<void> _resumeRunex() async {
+    if (_positionStreamSubscription.value!.isPaused) {
+      setState(() {
+        _startedRunex = false;
+        //  _positionStreamSubscription.value = _positionStreamSubscription.value?.resume();
+      });
+      print(
+          '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
     }
   }
 
   Future<void> _saveRunex() async {
     setState(() {
-      _latitude = [];
-      _longitude = [];
+      // _latitude = [];
+      // _longitude = [];
       _startedRunex = false;
+      // _positionStreamSubscription.value = _positionStreamSubscription.value?.pause();
     });
+    print(
+        '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
   }
 
   @override
@@ -79,26 +119,30 @@ class _WorkOutState extends State<WorkOut> {
             // ignore: prefer_const_literals_to_create_immutables
             children: [
               Text(
-                'Work out page', style: TextStyle(fontSize: 28),
+                'Work out page',
+                style: TextStyle(fontSize: 28),
               ),
               SizedBox(height: 100),
-              Text(
-                  'Latitude count: ${_latitude.length}\tLongitude count: ${_longitude.length}'),
-              SizedBox(height: 20),
-              Container(
-                  height: 500,
-                  child: ListView.builder(
-                      itemCount: _latitude.length,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(
-                              'Latitude: ${_latitude[index]}\tLongitude: ${_longitude[index]}'),
-                        );
-                      })),
+              ValueListenableBuilder<dynamic>(
+                  valueListenable: _latitude,
+                  builder: (context, value, widget) {
+                    return _latitude.value.length > 0
+                        ? Container(
+                            height: 500,
+                            child: ListView.builder(
+                                itemCount: _latitude.value.length,
+                                itemBuilder: (context, index) {
+                                  return ListTile(
+                                    title: Text(
+                                        'Latitude: ${_latitude.value[index]}\tLongitude: ${_longitude.value[index]}'),
+                                  );
+                                }))
+                        : Text('Nothin');
+                  }),
               !_startedRunex
                   ? TextButton(
                       onPressed: () {
-                        _startRunex();
+                        _run();
                       },
                       child: Column(
                         // ignore: prefer_const_literals_to_create_immutables
