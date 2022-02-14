@@ -1,6 +1,8 @@
 // ignore_for_file: prefer_const_constructors
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:runex/screens/screens.dart';
 import 'package:runex/utils/utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -21,6 +23,7 @@ class _HomeState extends State<Home> {
     return SafeArea(
       child: Scaffold(
         body: WebView(
+          zoomEnabled: false,
           initialUrl: Constants.runexUrl,
           javascriptMode: JavascriptMode.unrestricted,
           onWebViewCreated: (WebViewController controller) {
@@ -41,5 +44,16 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
+  }
+}
+
+void _signIn() async {
+  try {
+    final result = await LineSDK.instance.login();
+    // user id -> result.userProfile?.userId
+    // user name -> result.userProfile?.displayName
+    // user avatar -> result.userProfile?.pictureUrl
+  } on PlatformException catch (e) {
+    
   }
 }

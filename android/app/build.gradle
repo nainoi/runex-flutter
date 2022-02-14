@@ -48,7 +48,16 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
     }
+    signingConfigs {
+    debug {
+        storeFile file('key.jks')
+        storePassword 'runexdemo'
+        keyAlias 'androiddebugkey'
+        keyPassword 'runexdemo'
+    }
+}
 
     buildTypes {
         release {
