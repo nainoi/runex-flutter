@@ -21,6 +21,7 @@ class _HomeState extends State<Home> {
     return SafeArea(
       child: Scaffold(
         body: WebView(
+          zoomEnabled: false,
           initialUrl: Constants.runexUrl,
           javascriptMode: JavascriptMode.unrestricted,
           onWebViewCreated: (WebViewController controller) {
