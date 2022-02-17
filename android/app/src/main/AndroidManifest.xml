@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.runex">
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- <uses-permission android:name="android.permission.INTERNET" /> -->
    <application
+        tools:replace="android:label"
         android:label="runex"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
@@ -46,9 +48,12 @@
            <category android:name="android.intent.category.BROWSABLE" />
            <data android:scheme="@string/fb_login_protocol_scheme" />
        </intent-filter>
-   </activity> 
+  </activity> 
+
+   <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyAbJLHd96AFFe21IYl9AQ5z--WLsAnbhiQ"/>
+   <service android:name="com.transistorsoft.locationmanager.service.TrackingService" android:foregroundServiceType="location" />
+   <service android:name="com.transistorsoft.locationmanager.service.LocationRequestService" android:foregroundServiceType="location" />
+   <!-- <meta-data android:name="com.transistorsoft.locationmanager.license" android:value="YOUR_LICENCE_KEY_HERE" /> -->
     </application>
-        <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-        <!-- <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> -->
-        <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 </manifest>

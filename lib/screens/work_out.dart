@@ -2,40 +2,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:runex/screens/screens.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
+import 'package:runex/databases/databases.dart';
+import 'dart:convert' as convert;
+import 'package:runex/models/models.dart';
 
-late ValueNotifier _positionStreamSubscription =
-    ValueNotifier(StreamSubscription<Position>);
-final LocationSettings _locationSettings =
-    LocationSettings(accuracy: LocationAccuracy.best, distanceFilter: 1);
-
-late ValueNotifier _latitude = ValueNotifier(<double>[]);
-late ValueNotifier _longitude = ValueNotifier(<double>[]);
-
-Future<void> _startRunex() async {
-  Workmanager().executeTask((task, inputData) async {
-    switch (task) {
-      case "fetchBackground":
-        print('######################### Call task #########################');
-        _positionStreamSubscription.value =
-            Geolocator.getPositionStream(locationSettings: _locationSettings)
-                .listen((Position? position) {
-          _latitude.value.add(position?.latitude.toDouble());
-          _longitude.value.add(position?.longitude.toDouble());
-          print('Position: ${position?.latitude.toString()}');
-        });
-        print('Value: ${_positionStreamSubscription.value}');
-        // Position userLocation = await Geolocator.getCurrentPosition(
-        //     desiredAccuracy: LocationAccuracy.high);
-        // notify.Notification notification = new notify.Notification();
-        // notification.showNotificationWithoutSound(userLocation);
-
-        // break;
-    }
-    return Future.value(true);
-  });
-}
+convert.JsonEncoder encoder = new convert.JsonEncoder.withIndent("     ");
 
 class WorkOut extends StatefulWidget {
   const WorkOut({Key? key}) : super(key: key);
@@ -45,152 +21,501 @@ class WorkOut extends StatefulWidget {
 }
 
 class _WorkOutState extends State<WorkOut> {
-  late bool _startedRunex = false;
+  // Fetch location in background state variables
+  late SharedPreferences prefs;
 
-  void _run() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  late bool _canDisplayMap = false;
 
-    final permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      final permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('Location permission are denied');
-      }
+  late bool _isStartedRun = false;
+  late bool _isPaused = false;
+
+  initPrefs() async {
+    prefs = await SharedPreferences.getInstance();
+    _isStartedRun = prefs.getBool('_isStartedRun') ?? false;
+    _isPaused = prefs.getBool('_isPaused') ?? false;
+    _runexId = prefs.getInt('_runexId') ?? 0;
+    if (_isStartedRun) {
+      _refreshPolyLines();
     }
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'Location permission are permanently denied, we cannot request permission.');
-    }
-    Workmanager().initialize(_startRunex, isInDebugMode: true);
-
-    // Workmanager().registerPeriodicTask("1", "fetchBackground",
-    //     frequency: Duration(minutes: 1));
-    Workmanager().registerOneOffTask('1', 'fetchBackground');
-    setState(() {
-      _startedRunex = true;
-    });
   }
 
-  Future<void> _pauseRunex() async {
-    if (!_positionStreamSubscription.value!.isPaused) {
+  late int _runexId = 0;
+  late bool _isMoving;
+  late bool _enabled;
+  late String _motionActivity;
+  late String _odometer;
+  late dynamic _content;
+
+  // Google map and Polyline state variables
+  GoogleMapController? controller;
+  Map<PolylineId, Polyline> polylines = <PolylineId, Polyline>{};
+  PolylineId? selectedPolyline;
+  final List<LatLng> points = <LatLng>[];
+  late LatLng _target = LatLng(15.8700, 100.9925);
+
+  _timer() {
+    Timer(const Duration(seconds: 1), () {
       setState(() {
-        _startedRunex = false;
-        //  _positionStreamSubscription.value = _positionStreamSubscription.value?.pause();
+        _canDisplayMap = true;
       });
-      print(
-          '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
-    }
-  }
-
-  Future<void> _resumeRunex() async {
-    if (_positionStreamSubscription.value!.isPaused) {
-      setState(() {
-        _startedRunex = false;
-        //  _positionStreamSubscription.value = _positionStreamSubscription.value?.resume();
-      });
-      print(
-          '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
-    }
-  }
-
-  Future<void> _saveRunex() async {
-    setState(() {
-      // _latitude = [];
-      // _longitude = [];
-      _startedRunex = false;
-      // _positionStreamSubscription.value = _positionStreamSubscription.value?.pause();
     });
-    print(
-        '_positionStreamSubscription.value = : ${_positionStreamSubscription.value!.isPaused}');
   }
 
   @override
   void initState() {
     super.initState();
+    initPrefs();
+    _timer();
+    _isMoving = false;
+    _enabled = false;
+    _content = '';
+    _motionActivity = 'UNKNOW';
+    _odometer = 0.00.toStringAsFixed(2);
+
+    // 1.  Listen to events (See docs for all 12 available events).
+    bg.BackgroundGeolocation.onLocation(_onLocation);
+    bg.BackgroundGeolocation.onMotionChange(_onMotionChange);
+    bg.BackgroundGeolocation.onActivityChange(_onActivityChange);
+    bg.BackgroundGeolocation.onProviderChange(_onProviderChange);
+    bg.BackgroundGeolocation.onConnectivityChange(_onConnectivityChange);
+
+    // 2.  Configure the plugin
+    bg.BackgroundGeolocation.ready(bg.Config(
+            desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
+            distanceFilter: 10.0,
+            stopOnTerminate: false,
+            startOnBoot: true,
+            debug: true,
+            logLevel: bg.Config.LOG_LEVEL_VERBOSE,
+            reset: true))
+        .then((bg.State state) {
+      setState(() {
+        _enabled = state.enabled;
+        _isMoving = state.isMoving!;
+      });
+    });
+  }
+
+  // Fetch location in background functions
+  _startRun() async {
+    try {
+      bg.BackgroundGeolocation.start().then((bg.State state) {
+        setState(() {
+          _enabled = state.enabled;
+          _isMoving = state.isMoving!;
+        });
+      });
+      _onClickGetCurrentPosition();
+      await RunexDatabase.instance
+          .create(Runex(timestamp: DateTime.now().toString(), isSaved: false));
+      _refreshRunex();
+      prefs.setBool('_isStartedRun', true);
+      setState(() {
+        _isStartedRun = true;
+      });
+    } catch (e) {
+      // Alert somrthing
+    }
+  }
+
+  _pauseRun() {
+    prefs.setBool('_isPaused', true);
+    setState(() {
+      _isPaused = true;
+    });
+  }
+
+  _unpause() {
+    prefs.setBool('_isPaused', false);
+    setState(() {
+      _isPaused = false;
+    });
+  }
+
+  _stopRun() {
+    prefs.setBool('_isStartedRun', false);
+    prefs.setBool('_isPaused', false);
+    setState(() {
+      _isStartedRun = false;
+      _isPaused = false;
+      points.clear();
+    });
+    prefs.remove('_runexId');
+    prefs.remove('_isStartedRun');
+    prefs.remove('_isPaused');
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => WorkOutResult()));
+  }
+
+  _refreshRunex() async {
+    final runexList = await RunexDatabase.instance.read();
+    prefs.setInt('_runexId', runexList.length);
+    final id = prefs.getInt('_runexId');
+    setState(() {
+      _runexId = id!;
+    });
+  }
+
+  void _onClickEnable(enabled) {
+    if (enabled) {
+      bg.BackgroundGeolocation.start().then((bg.State state) {
+        print('[start] success $state');
+        setState(() {
+          _enabled = state.enabled;
+          _isMoving = state.isMoving!;
+        });
+      });
+    } else {
+      bg.BackgroundGeolocation.stop().then((bg.State state) {
+        print('[stop] success: $state');
+
+        // reset odometer
+        bg.BackgroundGeolocation.setOdometer(0.0);
+
+        setState(() {
+          _odometer = '0.0';
+          _enabled = state.enabled;
+          _isMoving = state.isMoving!;
+        });
+      });
+    }
+  }
+
+  // Manually toggle the tracking state:  moving vs stationary
+  void _onClickChangePace() {
+    setState(() {
+      _isMoving = !_isMoving;
+    });
+    print("[onClickChangePace] -> $_isMoving");
+
+    bg.BackgroundGeolocation.changePace(_isMoving).then((bool isMoving) {
+      print('[changePace] success $isMoving');
+    }).catchError((e) {
+      print('[changePace] ERROR: ' + e.code.toString());
+    });
+  }
+
+  // Manually fetch the current position.
+  void _onClickGetCurrentPosition() {
+    bg.BackgroundGeolocation.getCurrentPosition(
+            persist: false, // <-- do not persist this location
+            desiredAccuracy: 0, // <-- desire best possible accuracy
+            timeout: 30000, // <-- wait 30s before giving up.
+            samples: 3 // <-- sample 3 location before selecting best.
+            )
+        .then((bg.Location location) {
+      dynamic data = convert.jsonDecode(encoder.convert(location.toMap()));
+      _target = LatLng(data['coords']['latitude'], data['coords']['longitude']);
+      controller?.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
+      print('[getCurrentPosition] - $location');
+    }).catchError((error) {
+      print('[getCurrentPosition] ERROR: $error');
+    });
+  }
+
+  void _onLocation(bg.Location location) async {
+    String odometerKM = (location.odometer / 1000.0).toStringAsFixed(2);
+    setState(() {
+      _content = encoder.convert(location.toMap());
+      _odometer = odometerKM;
+    });
+    dynamic data = convert.jsonDecode(_content);
+    if (_runexId > 0 && _isStartedRun && !_isPaused) {
+      try {
+        final _runexId = prefs.getInt('_runexId');
+        final id = await LocationDatabase.instance.create(
+          Location(
+              latitude: data['coords']['latitude'],
+              longitude: data['coords']['longitude'],
+              timestamp: data['timestamp'],
+              runexId: _runexId!),
+        );
+        _updatePolyLines(
+            id, data['coords']['latitude'], data['coords']['longitude']);
+      } catch (e) {
+        // Alert
+      }
+    }
+  }
+
+  void _onMotionChange(bg.Location location) {
+    print('[motionchange] - $location');
+  }
+
+  void _onActivityChange(bg.ActivityChangeEvent event) {
+    print('[motionchange] - $event');
+    setState(() {
+      _motionActivity = event.activity;
+    });
+  }
+
+  void _onProviderChange(bg.ProviderChangeEvent event) {
+    print('$event');
+
+    setState(() {
+      _content = encoder.convert(event.toMap());
+    });
+  }
+
+  void _onConnectivityChange(bg.ConnectivityChangeEvent event) {
+    print('$event');
+  }
+
+  // Google map and Polyline functions
+  void _onMapCreated(GoogleMapController controller) {
+    this.controller = controller;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  void _onPolylineTapped(PolylineId polylineId) {
+    setState(() {
+      selectedPolyline = polylineId;
+    });
+  }
+
+  void _remove(PolylineId polylineId) {
+    setState(() {
+      if (polylines.containsKey(polylineId)) {
+        polylines.remove(polylineId);
+      }
+      selectedPolyline = null;
+    });
+  }
+
+  void _refreshPolyLines() async {
+    _onClickGetCurrentPosition();
+    List<Location> location =
+        await LocationDatabase.instance.readByRunexId(_runexId);
+    for (var i = 0; i < location.length; i++) {
+      setState(() {
+        points.add(_createLatLng(location[i].latitude, location[i].longitude));
+      });
+      final String polylineIdVal = 'polyline_id_$i';
+      final PolylineId polylineId = PolylineId(polylineIdVal);
+
+      final Polyline polyline = Polyline(
+        polylineId: polylineId,
+        consumeTapEvents: true,
+        color: Colors.orange,
+        width: 10,
+        points: points,
+        onTap: () {
+          _onPolylineTapped(polylineId);
+        },
+      );
+
+      setState(() {
+        polylines[polylineId] = polyline;
+      });
+    }
+  }
+
+  void _updatePolyLines(int id, double lat, double lng) async {
+    setState(() {
+      points.add(_createLatLng(lat, lng));
+    });
+
+    final String polylineIdVal = 'polyline_id_$id';
+    final PolylineId polylineId = PolylineId(polylineIdVal);
+
+    final Polyline polyline = Polyline(
+      polylineId: polylineId,
+      consumeTapEvents: true,
+      color: Colors.orange,
+      width: 10,
+      points: points,
+      onTap: () {
+        _onPolylineTapped(polylineId);
+      },
+    );
+
+    setState(() {
+      polylines[polylineId] = polyline;
+    });
+  }
+
+  LatLng _createLatLng(double lat, double lng) {
+    return LatLng(lat, lng);
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: Container(
-            child: Center(
-          child: Column(
-            // ignore: prefer_const_literals_to_create_immutables
-            children: [
-              Text(
-                'Work out page',
-                style: TextStyle(fontSize: 28),
-              ),
-              SizedBox(height: 100),
-              ValueListenableBuilder<dynamic>(
-                  valueListenable: _latitude,
-                  builder: (context, value, widget) {
-                    return _latitude.value.length > 0
-                        ? Container(
-                            height: 500,
-                            child: ListView.builder(
-                                itemCount: _latitude.value.length,
-                                itemBuilder: (context, index) {
-                                  return ListTile(
-                                    title: Text(
-                                        'Latitude: ${_latitude.value[index]}\tLongitude: ${_longitude.value[index]}'),
-                                  );
-                                }))
-                        : Text('Nothin');
-                  }),
-              !_startedRunex
-                  ? TextButton(
-                      onPressed: () {
-                        _run();
-                      },
-                      child: Column(
-                        // ignore: prefer_const_literals_to_create_immutables
-                        children: [
-                          Icon(
-                            Icons.play_arrow,
-                            size: 30,
-                          ),
-                          Text('Start')
-                        ],
-                      ))
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+    return Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: const Text('Runex'),
+        ),
+        body: Column(
+          children: [
+            Flexible(
+                flex: 1,
+                child: Container(
+                  child: _canDisplayMap ? GoogleMap(
+                    initialCameraPosition: const CameraPosition(
+                      target: LatLng(15.8700, 100.9925),
+                      zoom: 7.0,
+                    ),
+                    polylines: Set<Polyline>.of(polylines.values),
+                    onMapCreated: _onMapCreated,
+                  ): null,
+                )),
+            Flexible(
+              flex: 1,
+              child: Container(
+                color: Colors.grey[800],
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(30, 16, 30, 24),
+                  child: Center(
+                    child: Column(
                       children: [
-                        // TextButton(
-                        //     onPressed: () {
-                        //       _pauseRunex();
-                        //     },
-                        //     child: Column(
-                        //       // ignore: prefer_const_literals_to_create_immutables
-                        //       children: [
-                        //         Icon(
-                        //           Icons.pause_circle_filled_outlined,
-                        //           size: 30,
-                        //         ),
-                        //         Text('Pause')
-                        //       ],
-                        //     )),
-                        TextButton(
-                            onPressed: () {
-                              _saveRunex();
-                            },
-                            child: Column(
-                              // ignore: prefer_const_literals_to_create_immutables
-                              children: [
-                                Icon(
-                                  Icons.stop_circle,
-                                  size: 30,
-                                ),
-                                Text('Save')
-                              ],
-                            )),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          // ignore: prefer_const_literals_to_create_immutables
+                          children: [
+                            Text(
+                              'ระยะทาง(km)',
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400),
+                            ),
+                            Text(
+                              _odometer,
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 45,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 24, bottom: 24),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // ignore: prefer_const_literals_to_create_immutables
+                            children: [
+                              RunDetail(
+                                  title: 'ระยะเวลา', subTitle: '00:00:00'),
+                              RunDetail(
+                                  title: 'Pace(min/km)', subTitle: '00:00'),
+                              RunDetail(title: 'แคลอรี่(cal)', subTitle: '0'),
+                            ],
+                          ),
+                        ),
+                        !_isStartedRun && !_isPaused
+                            ? RunButton(
+                                onTap: () {
+                                  _startRun();
+                                },
+                                title: 'จับเวลา',
+                                icon: Icons.play_circle_fill_outlined,
+                                iconColor: Colors.yellow,
+                              )
+                            : _isStartedRun && !_isPaused
+                                ? RunButton(
+                                    onTap: () {
+                                      _pauseRun();
+                                    },
+                                    title: 'พักจับเวลา',
+                                    icon: Icons.pause_circle_filled_outlined,
+                                    iconColor: Colors.yellow,
+                                  )
+                                : Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      RunButton(
+                                        onTap: () {
+                                          _stopRun();
+                                        },
+                                        title: 'จบการจับเวลา',
+                                        icon: Icons.stop_circle_outlined,
+                                        iconColor: Colors.white,
+                                      ),
+                                      RunButton(
+                                        onTap: () {
+                                          _unpause();
+                                        },
+                                        title: 'จับเวลาต่อ',
+                                        icon: Icons.play_circle_fill_outlined,
+                                        iconColor: Colors.yellow,
+                                      )
+                                    ],
+                                  )
                       ],
-                    )
-            ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ));
+  }
+}
+
+class RunButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final String title;
+  final IconData icon;
+  final Color iconColor;
+  const RunButton({
+    Key? key,
+    required this.onTap,
+    required this.title,
+    required this.iconColor,
+    required this.icon,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Icon(
+            icon,
+            size: 100,
+            color: iconColor,
           ),
-        )),
-      ),
+        ),
+        SizedBox(height: 8),
+        Text(title,
+            style: TextStyle(
+                color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w400))
+      ],
+    );
+  }
+}
+
+class RunDetail extends StatelessWidget {
+  final String title;
+  final String subTitle;
+  const RunDetail({
+    Key? key,
+    required this.title,
+    required this.subTitle,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      // ignore: prefer_const_literals_to_create_immutables
+      children: [
+        Text(title,
+            style: TextStyle(
+                color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w400)),
+        SizedBox(height: 8),
+        Text(subTitle,
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold)),
+      ],
     );
   }
 }

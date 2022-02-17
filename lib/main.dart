@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
-import 'package:runex/screens/home.dart';
+import 'package:runex/screens/screens.dart';
 // import 'package:runex/screens/signin/loginfacebook.dart';
 // import 'package:runex/screens/signin/logingoogle.dart';
 // import 'package:runex/screens/signin/loginline.dart';
