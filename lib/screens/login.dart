@@ -11,7 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert' as convert;
 
-import 'package:runex/constants/constant.dart';
+// import 'package:runex/constants/constant.dart';
 import 'package:runex/screens/home.dart';
 
 GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -405,7 +405,7 @@ class _LoginState extends State<Login> {
 
 Future<void> login(String userId, String tokenId, String name, String imgUrl,
     String email) async {
-  final String url = "$apidomain/user/token/$userId";
+  final String url = ''; //"$apidomain/user/token/$userId";
   final response = await http.patch(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: convert.json.encode({
