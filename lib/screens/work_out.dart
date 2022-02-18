@@ -40,9 +40,6 @@ class _WorkOutState extends State<WorkOut> {
   }
 
   late int _runexId = 0;
-  late bool _isMoving;
-  late bool _enabled;
-  late String _motionActivity;
   late String _odometer;
   late dynamic _content;
 
@@ -66,45 +63,29 @@ class _WorkOutState extends State<WorkOut> {
     super.initState();
     initPrefs();
     _timer();
-    _isMoving = false;
-    _enabled = false;
     _content = '';
-    _motionActivity = 'UNKNOW';
     _odometer = 0.00.toStringAsFixed(2);
 
     // 1.  Listen to events (See docs for all 12 available events).
     bg.BackgroundGeolocation.onLocation(_onLocation);
-    bg.BackgroundGeolocation.onMotionChange(_onMotionChange);
-    bg.BackgroundGeolocation.onActivityChange(_onActivityChange);
     bg.BackgroundGeolocation.onProviderChange(_onProviderChange);
-    bg.BackgroundGeolocation.onConnectivityChange(_onConnectivityChange);
 
     // 2.  Configure the plugin
     bg.BackgroundGeolocation.ready(bg.Config(
-            desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-            distanceFilter: 10.0,
-            stopOnTerminate: false,
-            startOnBoot: true,
-            debug: true,
-            logLevel: bg.Config.LOG_LEVEL_VERBOSE,
-            reset: true))
-        .then((bg.State state) {
-      setState(() {
-        _enabled = state.enabled;
-        _isMoving = state.isMoving!;
-      });
-    });
+        desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
+        distanceFilter: 10.0,
+        stopOnTerminate: false,
+        startOnBoot: true,
+        debug: true,
+        logLevel: bg.Config.LOG_LEVEL_VERBOSE,
+        reset: true));
   }
 
   // Fetch location in background functions
   _startRun() async {
     try {
-      bg.BackgroundGeolocation.start().then((bg.State state) {
-        setState(() {
-          _enabled = state.enabled;
-          _isMoving = state.isMoving!;
-        });
-      });
+      bg.BackgroundGeolocation.start();
+      await bg.BackgroundGeolocation.setOdometer(0.0);
       _onClickGetCurrentPosition();
       await RunexDatabase.instance
           .create(Runex(timestamp: DateTime.now().toString(), isSaved: false));
@@ -132,13 +113,21 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
-  _stopRun() {
+  _stopRun() async {
     prefs.setBool('_isStartedRun', false);
     prefs.setBool('_isPaused', false);
     setState(() {
       _isStartedRun = false;
       _isPaused = false;
       points.clear();
+    });
+    bg.BackgroundGeolocation.stop().then((bg.State state) {
+      // reset odometer
+      bg.BackgroundGeolocation.setOdometer(0.0);
+      bg.BackgroundGeolocation.destroyLocations();
+      setState(() {
+        _odometer = '0.0';
+      });
     });
     prefs.remove('_runexId');
     prefs.remove('_isStartedRun');
@@ -156,45 +145,6 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
-  void _onClickEnable(enabled) {
-    if (enabled) {
-      bg.BackgroundGeolocation.start().then((bg.State state) {
-        print('[start] success $state');
-        setState(() {
-          _enabled = state.enabled;
-          _isMoving = state.isMoving!;
-        });
-      });
-    } else {
-      bg.BackgroundGeolocation.stop().then((bg.State state) {
-        print('[stop] success: $state');
-
-        // reset odometer
-        bg.BackgroundGeolocation.setOdometer(0.0);
-
-        setState(() {
-          _odometer = '0.0';
-          _enabled = state.enabled;
-          _isMoving = state.isMoving!;
-        });
-      });
-    }
-  }
-
-  // Manually toggle the tracking state:  moving vs stationary
-  void _onClickChangePace() {
-    setState(() {
-      _isMoving = !_isMoving;
-    });
-    print("[onClickChangePace] -> $_isMoving");
-
-    bg.BackgroundGeolocation.changePace(_isMoving).then((bool isMoving) {
-      print('[changePace] success $isMoving');
-    }).catchError((e) {
-      print('[changePace] ERROR: ' + e.code.toString());
-    });
-  }
-
   // Manually fetch the current position.
   void _onClickGetCurrentPosition() {
     bg.BackgroundGeolocation.getCurrentPosition(
@@ -208,7 +158,6 @@ class _WorkOutState extends State<WorkOut> {
       _target = LatLng(data['coords']['latitude'], data['coords']['longitude']);
       controller?.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
           target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
-      print('[getCurrentPosition] - $location');
     }).catchError((error) {
       print('[getCurrentPosition] ERROR: $error');
     });
@@ -216,12 +165,14 @@ class _WorkOutState extends State<WorkOut> {
 
   void _onLocation(bg.Location location) async {
     String odometerKM = (location.odometer / 1000.0).toStringAsFixed(2);
-    setState(() {
-      _content = encoder.convert(location.toMap());
-      _odometer = odometerKM;
-    });
+    if (mounted) {
+      setState(() {
+        _content = encoder.convert(location.toMap());
+        _odometer = odometerKM;
+      });
+    }
     dynamic data = convert.jsonDecode(_content);
-    if (_runexId > 0 && _isStartedRun && !_isPaused) {
+    if (_runexId > 0 && _isStartedRun && !_isPaused && data['is_moving']) {
       try {
         final _runexId = prefs.getInt('_runexId');
         final id = await LocationDatabase.instance.create(
@@ -239,27 +190,10 @@ class _WorkOutState extends State<WorkOut> {
     }
   }
 
-  void _onMotionChange(bg.Location location) {
-    print('[motionchange] - $location');
-  }
-
-  void _onActivityChange(bg.ActivityChangeEvent event) {
-    print('[motionchange] - $event');
-    setState(() {
-      _motionActivity = event.activity;
-    });
-  }
-
   void _onProviderChange(bg.ProviderChangeEvent event) {
-    print('$event');
-
     setState(() {
       _content = encoder.convert(event.toMap());
     });
-  }
-
-  void _onConnectivityChange(bg.ConnectivityChangeEvent event) {
-    print('$event');
   }
 
   // Google map and Polyline functions
@@ -275,15 +209,6 @@ class _WorkOutState extends State<WorkOut> {
   void _onPolylineTapped(PolylineId polylineId) {
     setState(() {
       selectedPolyline = polylineId;
-    });
-  }
-
-  void _remove(PolylineId polylineId) {
-    setState(() {
-      if (polylines.containsKey(polylineId)) {
-        polylines.remove(polylineId);
-      }
-      selectedPolyline = null;
     });
   }
 
@@ -355,14 +280,16 @@ class _WorkOutState extends State<WorkOut> {
             Flexible(
                 flex: 1,
                 child: Container(
-                  child: _canDisplayMap ? GoogleMap(
-                    initialCameraPosition: const CameraPosition(
-                      target: LatLng(15.8700, 100.9925),
-                      zoom: 7.0,
-                    ),
-                    polylines: Set<Polyline>.of(polylines.values),
-                    onMapCreated: _onMapCreated,
-                  ): null,
+                  child: _canDisplayMap
+                      ? GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: LatLng(15.8700, 100.9925),
+                            zoom: 7.0,
+                          ),
+                          polylines: Set<Polyline>.of(polylines.values),
+                          onMapCreated: _onMapCreated,
+                        )
+                      : null,
                 )),
             Flexible(
               flex: 1,
