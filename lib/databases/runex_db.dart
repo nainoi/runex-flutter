@@ -30,9 +30,14 @@ class RunexDatabase {
   Future _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $TABLE_NAME(
-        id $INT_TYPE $PRIMARY_COLUMN,
-        timestamp $TEXT_TYPE $NOT_NULL,
-        is_saved $BOOLEAN_TYPE $NOT_NULL
+        _id $INT_TYPE $PRIMARY_COLUMN,
+        provider_id $TEXT_TYPE $NOT_NULL,
+        start_time $TEXT_TYPE $NOT_NULL,
+        end_time $TEXT_TYPE,
+        distance_total_km $TEXT_TYPE,
+        time_total_hours $TEXT_TYPE,
+        is_saved $BOOLEAN_TYPE $NOT_NULL,
+        _doc_id $TEXT_TYPE
       )
     ''');
   }
@@ -44,21 +49,20 @@ class RunexDatabase {
 
   Future<List<Runex>> read() async {
     Database db = await instance.database;
-    var runex = await db.query(TABLE_NAME, columns: ['*'], orderBy: 'id');
-    List<Runex> runexList = runex.isNotEmpty
-        ? runex.map((e) => Runex.fromJson(e)).toList()
-        : [];
+    var runex = await db.query(TABLE_NAME, columns: ['*'], orderBy: '_id');
+    List<Runex> runexList =
+        runex.isNotEmpty ? runex.map((e) => Runex.fromJson(e)).toList() : [];
     return runexList;
   }
 
   Future<int> update(Runex runex) async {
     Database db = await instance.database;
     return await db.update(TABLE_NAME, runex.toJson(),
-        where: 'id = ?', whereArgs: [runex.id]);
+        where: '_id = ?', whereArgs: [runex.id]);
   }
 
   Future<int> delete(int id) async {
     Database db = await instance.database;
-    return await db.delete(TABLE_NAME, where: 'id = ?', whereArgs: [id]);
+    return await db.delete(TABLE_NAME, where: '_id = ?', whereArgs: [id]);
   }
 }

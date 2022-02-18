@@ -84,15 +84,23 @@ class _WorkOutState extends State<WorkOut> {
   // Fetch location in background functions
   _startRun() async {
     try {
-      bg.BackgroundGeolocation.start();
-      await bg.BackgroundGeolocation.setOdometer(0.0);
-      _onClickGetCurrentPosition();
-      await RunexDatabase.instance
-          .create(Runex(timestamp: DateTime.now().toString(), isSaved: false));
-      _refreshRunex();
-      prefs.setBool('_isStartedRun', true);
-      setState(() {
-        _isStartedRun = true;
+      bg.BackgroundGeolocation.start().then((value) async {
+        bg.BackgroundGeolocation.setOdometer(0.0);
+        final response = await RunexDatabase.instance.create(Runex(
+            providerId: 'ABCD1234',
+            startTime: DateTime.now().toString(),
+            endTime: '',
+            distanceKm: 0.0,
+            timeHrs: 0.0,
+            isSaved: true));
+        if (response > 0) {
+          _onClickGetCurrentPosition();
+          _refreshRunex();
+          prefs.setBool('_isStartedRun', true);
+          setState(() {
+            _isStartedRun = true;
+          });
+        }
       });
     } catch (e) {
       // Alert somrthing
@@ -174,13 +182,26 @@ class _WorkOutState extends State<WorkOut> {
     dynamic data = convert.jsonDecode(_content);
     if (_runexId > 0 && _isStartedRun && !_isPaused && data['is_moving']) {
       try {
-        final _runexId = prefs.getInt('_runexId');
         final id = await LocationDatabase.instance.create(
           Location(
+              runexId: _runexId,
+              odometer: 0.0,
+              altitude: data['coords']['altitude'],
+              heading: data['coords']['heading'],
               latitude: data['coords']['latitude'],
+              accuracy: data['coords']['accuracy'],
+              headingAccuracy: data['coords']['heading_accuracy'],
+              altitudeAccuracy: data['coords']['altitude_accuracy'],
+              speedAccuracy: data['coords']['speed_accuracy'],
+              speed: data['coords']['speed'],
               longitude: data['coords']['longitude'],
               timestamp: data['timestamp'],
-              runexId: _runexId!),
+              isMoveing: data['is_moving'],
+              confidence: data['activity']['confidence'],
+              type: data['activity']['type'],
+              isCharging: data['battery']['is_charging'],
+              level: data['battery']['level'],
+              docId: null),
         );
         _updatePolyLines(
             id, data['coords']['latitude'], data['coords']['longitude']);

@@ -22,20 +22,35 @@ class LocationDatabase {
   }
 
   static const TABLE_NAME = 'location';
-  static const PRIMARY_COLUMN = 'PRIMARY KEY AUTOINCREMENT';
+  static const PRIMARY_COLUMN = 'PRIMARY KEY';
   static const INT_TYPE = 'INTEGER';
   static const TEXT_TYPE = 'TEXT';
+  static const BOOLEAN_TYPE = 'BOOLEAN';
   static const NOT_NULL = 'NOT NULL';
 
   Future _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE $TABLE_NAME(
-        id INTEGER PRIMARY KEY,
+        _id $INT_TYPE $PRIMARY_COLUMN,
+        runex_id $INT_TYPE $NOT_NULL,
+        runex_doc_id $TEXT_TYPE,
+        odometer $TEXT_TYPE $NOT_NULL,
+        altitude $TEXT_TYPE $NOT_NULL,
+        heading $TEXT_TYPE $NOT_NULL,
         latitude $TEXT_TYPE $NOT_NULL,
+        accuracy $TEXT_TYPE $NOT_NULL,
+        heading_accuracy $TEXT_TYPE $NOT_NULL,
+        altitude_accuracy $TEXT_TYPE $NOT_NULL,
+        speed_accuracy $TEXT_TYPE $NOT_NULL,
+        speed $TEXT_TYPE $NOT_NULL,
         longitude $TEXT_TYPE $NOT_NULL,
         timestamp $TEXT_TYPE $NOT_NULL,
-        runex_id $INT_TYPE $NOT_NULL,
-        FOREIGN KEY (runex_id) REFERENCES runex (id)
+        is_moving $BOOLEAN_TYPE $NOT_NULL,
+        confidence $INT_TYPE $NOT_NULL,
+        type $TEXT_TYPE $NOT_NULL,
+        is_charging $BOOLEAN_TYPE $NOT_NULL,
+        level $TEXT_TYPE $NOT_NULL,
+        FOREIGN KEY (runex_id) REFERENCES runex (_id)
       )
     ''');
   }
@@ -47,8 +62,7 @@ class LocationDatabase {
 
   Future<List<Location>> read() async {
     Database db = await instance.database;
-    var locations = await db.query(TABLE_NAME, columns: ['*'], orderBy: 'id');
-    print('Location in db: $locations');
+    var locations = await db.query(TABLE_NAME, columns: ['*'], orderBy: '_id');
 
     List<Location> locationList = locations.isNotEmpty
         ? locations.map((e) => Location.fromJson(e)).toList()
@@ -59,8 +73,11 @@ class LocationDatabase {
 
   Future<List<Location>> readByRunexId(int runexId) async {
     Database db = await instance.database;
-    var locations = await db.query(TABLE_NAME, columns: ['*'], where: 'runex_id = ?',whereArgs: [runexId], orderBy: 'id');
-    print('Location in db: $locations');
+    var locations = await db.query(TABLE_NAME,
+        columns: ['*'],
+        where: 'runex_id = ?',
+        whereArgs: [runexId],
+        orderBy: '_id');
 
     List<Location> locationList = locations.isNotEmpty
         ? locations.map((e) => Location.fromJson(e)).toList()
@@ -68,8 +85,6 @@ class LocationDatabase {
 
     return locationList;
   }
-
-
 
   Future<int> update(Location location) async {
     Database db = await instance.database;
