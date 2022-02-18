@@ -11,7 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert' as convert;
 
-// import 'package:runex/constants/constant.dart';
+import 'package:runex/constants/constant.dart';
 import 'package:runex/screens/home.dart';
 
 GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -34,18 +34,51 @@ class _LoginState extends State<Login> {
   GoogleSignInAccount? _currentUser;
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
 
+  Future<void> checkUserLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? logintype = prefs.getString("provider");
+    print("Login Type" + logintype.toString());
+    if (logintype == "LINE") {
+      try {
+        final result = await LineSDK.instance.getProfile();
+        prefs.setString('userData', result.toString());
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const Home()));
+        // user id -> result.userId
+        // user name -> result.displayName
+        // user avatar -> result.pictureUrl
+      } on PlatformException catch (e) {
+        print(e.message);
+      }
+    } else if (logintype == "FACEBOOK") {
+      final accessToken = await FacebookAuth.instance.accessToken;
+      final userData = await FacebookAuth.instance.getUserData();
+      if (accessToken != null) {
+        // user is logged
+        prefs.setString('userData', userData.toString());
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const Home()));
+      }
+    } else if (logintype == "GOOGLE") {
+      _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
+        setState(() {
+          _currentUser = account;
+        });
+        if (_currentUser != null) {
+          _handleGetContact(_currentUser!);
+        }
+      });
+      _googleSignIn.signInSilently();
+
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Home()));
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
-      setState(() {
-        _currentUser = account;
-      });
-      if (_currentUser != null) {
-        _handleGetContact(_currentUser!);
-      }
-    });
-    _googleSignIn.signInSilently();
+    checkUserLoggedIn();
   }
 
   @override
@@ -290,7 +323,7 @@ class _LoginState extends State<Login> {
         print("userId> " + userId!);
 
         Navigator.push(
-            context, MaterialPageRoute(builder: (context) => Home()));
+            context, MaterialPageRoute(builder: (context) => const Home()));
       } on PlatformException catch (e) {
         print(e);
         switch (e.code.toString()) {
@@ -311,8 +344,7 @@ class _LoginState extends State<Login> {
             break;
         }
       }
-    }
-    if (method == "FACEBOOK") {
+    } else if (method == "FACEBOOK") {
       try {
         final result = await FacebookAuth.instance
             .login(); // by default we request the email and the public profile
@@ -325,6 +357,9 @@ class _LoginState extends State<Login> {
           prefs.setString('provider', "FACEBOOK");
           prefs.setString('userData', userData.toString());
           final accessToken = result.accessToken!;
+
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Home()));
         } else {
           print(result.status);
           print(result.message);
@@ -349,12 +384,14 @@ class _LoginState extends State<Login> {
             break;
         }
       }
-    } else {
+    } else if (method == "GOOGLE") {
       try {
         await _googleSignIn.signIn();
         print(_googleSignIn.clientId);
         prefs.setString('userData', _googleSignIn.currentUser.toString());
         prefs.setString('provider', "GOOGLE");
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => const Home()));
       } on PlatformException catch (e) {
         print(e);
         switch (e.code.toString()) {
@@ -405,7 +442,7 @@ class _LoginState extends State<Login> {
 
 Future<void> login(String userId, String tokenId, String name, String imgUrl,
     String email) async {
-  final String url = ''; //"$apidomain/user/token/$userId";
+  final String url = "$apidomain/user/token/$userId";
   final response = await http.patch(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: convert.json.encode({
