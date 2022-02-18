@@ -4,12 +4,14 @@ import 'package:runex/screens/screens.dart';
 // import 'package:runex/screens/signin/loginfacebook.dart';
 // import 'package:runex/screens/signin/logingoogle.dart';
 // import 'package:runex/screens/signin/loginline.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LineSDK.instance.setup('1656887265').then((_) {
     print("LineSDK Prepared");
   });
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

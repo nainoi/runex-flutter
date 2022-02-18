@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "248398089341",
+    "project_id": "firestore-example-ee400",
+    "storage_bucket": "firestore-example-ee400.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248398089341:android:1e4c141b5d34d4b2903514",
+        "android_client_info": {
+          "package_name": "com.example.runex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248398089341-sb44hropvqts4foatr7m77m1s1jln024.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAESObMOEx4bTRxSABrEc43EzcRtqiU34s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248398089341-sb44hropvqts4foatr7m77m1s1jln024.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
