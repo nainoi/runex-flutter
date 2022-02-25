@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:provider/provider.dart';
+import 'package:runex/screens/login.dart';
 import 'package:runex/screens/screens.dart';
 // import 'package:runex/screens/signin/loginfacebook.dart';
 // import 'package:runex/screens/signin/logingoogle.dart';
@@ -25,7 +26,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => ConnectivityProvider(),)
+        ChangeNotifierProvider(
+          create: (context) => ConnectivityProvider(),
+        )
       ],
       child: MaterialApp(
         title: 'RUNEX',
@@ -33,7 +36,7 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ),
         debugShowCheckedModeBanner: false,
-        home: const Home(),
+        home: const Login(),
         // home: MyHomePage(title: 'LineLoginAPI Tutorial | Login'),
         //home: FacebookPage(title: 'Facebook Login'));
       ),

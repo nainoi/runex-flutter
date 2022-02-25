@@ -39,9 +39,11 @@ class _HomeState extends State<Home> {
 
   void asyncMethod() async {
     var token = await checkUserLoggedIn();
+    print(token);
     setState(() {
       userToken = token!;
     });
+    print('URL' + Constants.runexUrl + userToken);
     print('User' + userToken);
   }
 
