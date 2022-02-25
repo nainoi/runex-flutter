@@ -1,77 +1,73 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:convert' as convert;
 import 'package:runex/models/models.dart';
 
 class RunexFirestoreDatabase {
-
   static const String COLLECTION_NAME = 'runex';
-  
+
   DocumentReference runexDocument =
       FirebaseFirestore.instance.collection(COLLECTION_NAME).doc();
   CollectionReference runexCollection =
       FirebaseFirestore.instance.collection(COLLECTION_NAME);
 
-  Future create(Runex runex) {
+  Future<FirestoreReturn> create(Runex runex) {
     return runexDocument.set({
       'provider_id': runex.providerId,
       'start_time': runex.startTime,
       'end_time': runex.endTime,
       'distance_total_km': runex.distanceKm,
       'time_total_hours': runex.timeHrs,
-      '_doc_id': runexDocument.id
+      '_doc_id': runexDocument.id,
+      'is_saved': runex.isSaved
     }).then((value) {
-      return {'success': true, 'data': value};
+      return FirestoreReturn(success: true, data: runexDocument.id);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future read() {
+  Future<FirestoreReturn> read() {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .get()
         .then((QuerySnapshot querySnapshot) {
       // dynamic json = convert.jsonDecode(querySnapshot.docs.toList().toString());
       // List<Runex> runex = json.map((e) => Runex.fromJson(e)).toList();
-      return {'success': true, 'data': querySnapshot.docs.toList()};
+      return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
     }).catchError((error) {
-      return convert.jsonDecode("{'success': ${false}, 'data': $error}");
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future readByProviderId(String providerId) {
+  Future<FirestoreReturn> readByProviderId(String providerId) {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .where('provider_id', isEqualTo: providerId)
         .orderBy('_id')
         .get()
         .then((QuerySnapshot querySnapshot) {
-      return {'success': true, 'data': querySnapshot.docs.toList()};
+      return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
     }).catchError((error) {
-      return convert.jsonDecode("{'success': ${false}, 'data': $error}");
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future update(Runex runex) {
-    return runexCollection.doc(runex.docId).update({
-      'start_time': runex.startTime,
-      'end_time': runex.endTime,
-      'distance_total_km': runex.distanceKm,
-      'time_total_hours': runex.timeHrs,
-    }).then((value) {
-      return {'success': true, 'data': value};
+  Future<FirestoreReturn> update(String docId, bool isSaved) {
+    return runexCollection
+        .doc(docId)
+        .update({'is_saved': isSaved}).then((value) {
+      return FirestoreReturn(success: true, data: docId);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future delete(String docId) {
+  Future<FirestoreReturn> delete(String docId) {
     return runexCollection.doc(docId).delete().then((value) {
-      return {'success': true, 'data': value};
+      return FirestoreReturn(success: true, data: docId);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 }

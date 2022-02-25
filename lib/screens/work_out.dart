@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors, unnecessary_new
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:runex/screens/screens.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -23,17 +24,35 @@ class WorkOut extends StatefulWidget {
 class _WorkOutState extends State<WorkOut> {
   // Fetch location in background state variables
   late SharedPreferences prefs;
-
   late bool _canDisplayMap = false;
-
   late bool _isStartedRun = false;
   late bool _isPaused = false;
+  late int timer = 0;
+  late Timer _timerContoller;
+  late String timeStr = '00:00:00';
+
+  _formatTime(int seconds) {
+    setState(() {
+      timeStr = '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
+    });
+  }
+
+  late String notificationLayout = 'notification_layout';
 
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
     _isStartedRun = prefs.getBool('_isStartedRun') ?? false;
     _isPaused = prefs.getBool('_isPaused') ?? false;
     _runexId = prefs.getInt('_runexId') ?? 0;
+    final startTime = prefs.getInt("startTime") ?? 0;
+    final currentTime = Timestamp.fromDate(DateTime.now());
+    if (startTime > 0) {
+      final diffTime = currentTime.seconds - startTime;
+      setState(() {
+        timer = diffTime;
+      });
+      _startTime();
+    }
     if (_isStartedRun) {
       _refreshPolyLines();
     }
@@ -48,10 +67,9 @@ class _WorkOutState extends State<WorkOut> {
   Map<PolylineId, Polyline> polylines = <PolylineId, Polyline>{};
   PolylineId? selectedPolyline;
   final List<LatLng> points = <LatLng>[];
-  late LatLng _target = LatLng(15.8700, 100.9925);
 
   _timer() {
-    Timer(const Duration(seconds: 1), () {
+    Timer(const Duration(milliseconds: 500), () {
       setState(() {
         _canDisplayMap = true;
       });
@@ -69,6 +87,22 @@ class _WorkOutState extends State<WorkOut> {
     // 1.  Listen to events (See docs for all 12 available events).
     bg.BackgroundGeolocation.onLocation(_onLocation);
     bg.BackgroundGeolocation.onProviderChange(_onProviderChange);
+    bg.BackgroundGeolocation.onNotificationAction((buttonId) {
+      switch (buttonId) {
+        case 'pause':
+          setState(() {
+            _isPaused = true;
+            notificationLayout = "notification_pause_layout";
+          });
+          break;
+        case 'resume':
+          setState(() {
+            _isPaused = true;
+            notificationLayout = "notification_layout";
+          });
+          break;
+      }
+    });
 
     // 2.  Configure the plugin
     bg.BackgroundGeolocation.ready(bg.Config(
@@ -76,30 +110,41 @@ class _WorkOutState extends State<WorkOut> {
         distanceFilter: 10.0,
         stopOnTerminate: false,
         startOnBoot: true,
-        debug: true,
+        debug: false,
         logLevel: bg.Config.LOG_LEVEL_VERBOSE,
-        reset: true));
+        reset: true,
+        notification: bg.Notification(
+          title: "Runnig",
+          text: '',
+          sticky: true,
+          // layout: notificationLayout,
+          actions: ["pause", "resume"],
+        )));
   }
 
   // Fetch location in background functions
   _startRun() async {
     try {
+      // createRunnigNotification(timeStr, _odometer);
+      _onClickGetCurrentPosition();
+      final startTime = Timestamp.fromDate(DateTime.now());
       bg.BackgroundGeolocation.start().then((value) async {
         bg.BackgroundGeolocation.setOdometer(0.0);
         final response = await RunexDatabase.instance.create(Runex(
             providerId: 'ABCD1234',
-            startTime: DateTime.now().toString(),
+            startTime: DateTime.now().toIso8601String(),
             endTime: '',
             distanceKm: 0.0,
             timeHrs: 0.0,
             isSaved: true));
         if (response > 0) {
-          _onClickGetCurrentPosition();
           _refreshRunex();
           prefs.setBool('_isStartedRun', true);
           setState(() {
             _isStartedRun = true;
           });
+          prefs.setInt("startTime", startTime.seconds);
+          _startTime();
         }
       });
     } catch (e) {
@@ -108,49 +153,75 @@ class _WorkOutState extends State<WorkOut> {
   }
 
   _pauseRun() {
-    prefs.setBool('_isPaused', true);
-    setState(() {
-      _isPaused = true;
-    });
+    try {
+      prefs.setBool('_isPaused', true);
+      bg.BackgroundGeolocation.stop();
+      setState(() {
+        _timerContoller.cancel();
+        _isPaused = true;
+      });
+    } catch (e) {}
   }
 
   _unpause() {
-    prefs.setBool('_isPaused', false);
-    setState(() {
-      _isPaused = false;
-    });
+    try {
+      prefs.setBool('_isPaused', false);
+      bg.BackgroundGeolocation.start();
+      _startTime();
+      setState(() {
+        _isPaused = false;
+      });
+    } catch (e) {}
   }
 
   _stopRun() async {
-    prefs.setBool('_isStartedRun', false);
-    prefs.setBool('_isPaused', false);
-    setState(() {
-      _isStartedRun = false;
-      _isPaused = false;
-      points.clear();
-    });
-    bg.BackgroundGeolocation.stop().then((bg.State state) {
-      // reset odometer
-      bg.BackgroundGeolocation.setOdometer(0.0);
-      bg.BackgroundGeolocation.destroyLocations();
+    try {
+      prefs.remove("startTime");
       setState(() {
-        _odometer = '0.0';
+        _timerContoller.cancel();
+        _isStartedRun = false;
+        _isPaused = false;
+        points.clear();
       });
-    });
-    prefs.remove('_runexId');
-    prefs.remove('_isStartedRun');
-    prefs.remove('_isPaused');
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => WorkOutResult()));
+      List<Runex> data = await RunexDatabase.instance.readById(_runexId);
+      await RunexDatabase.instance.update(Runex(
+          id: _runexId,
+          providerId: 'ABCD1234',
+          startTime: data[0].startTime,
+          endTime: DateTime.now().toIso8601String(),
+          distanceKm: double.parse(_odometer),
+          timeHrs: timer / 3600,
+          isSaved: data[0].isSaved,
+          docId: null));
+      setState(() {
+        timer = 0;
+      });
+      bg.BackgroundGeolocation.stop().then((bg.State state) {
+        // reset odometer
+        bg.BackgroundGeolocation.setOdometer(0.0);
+        bg.BackgroundGeolocation.destroyLocations();
+      });
+      prefs.remove('_runexId');
+      prefs.remove('_isStartedRun');
+      prefs.remove('_isPaused');
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => WorkOutResult(
+                    runexId: _runexId,
+                  )));
+    } catch (e) {}
   }
 
   _refreshRunex() async {
-    final runexList = await RunexDatabase.instance.read();
-    prefs.setInt('_runexId', runexList.length);
-    final id = prefs.getInt('_runexId');
-    setState(() {
-      _runexId = id!;
-    });
+    try {
+      final runexList = await RunexDatabase.instance.read();
+      prefs.setInt('_runexId', runexList.length);
+      final id = prefs.getInt('_runexId');
+      setState(() {
+        _runexId = id!;
+      });
+    } catch (e) {}
   }
 
   // Manually fetch the current position.
@@ -163,12 +234,25 @@ class _WorkOutState extends State<WorkOut> {
             )
         .then((bg.Location location) {
       dynamic data = convert.jsonDecode(encoder.convert(location.toMap()));
-      _target = LatLng(data['coords']['latitude'], data['coords']['longitude']);
-      controller?.moveCamera(CameraUpdate.newCameraPosition(CameraPosition(
+      final _target =
+          LatLng(data['coords']['latitude'], data['coords']['longitude']);
+      controller?.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
           target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
     }).catchError((error) {
       print('[getCurrentPosition] ERROR: $error');
     });
+  }
+
+  void _startTime() {
+    const oneSec = Duration(seconds: 1);
+    if (mounted) {
+      setState(() {
+        _timerContoller = Timer.periodic(oneSec, (Timer t) {
+          timer += 1;
+          _formatTime(timer);
+        });
+      });
+    }
   }
 
   void _onLocation(bg.Location location) async {
@@ -289,10 +373,12 @@ class _WorkOutState extends State<WorkOut> {
     return LatLng(lat, lng);
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+          backgroundColor: Colors.grey[800],
           centerTitle: true,
           title: const Text('Runex'),
         ),
@@ -348,7 +434,9 @@ class _WorkOutState extends State<WorkOut> {
                             // ignore: prefer_const_literals_to_create_immutables
                             children: [
                               RunDetail(
-                                  title: 'ระยะเวลา', subTitle: '00:00:00'),
+                                  title: 'ระยะเวลา',
+                                  subTitle:
+                                      timer != 0.0 ? timeStr : '00:00:00'),
                               RunDetail(
                                   title: 'Pace(min/km)', subTitle: '00:00'),
                               RunDetail(title: 'แคลอรี่(cal)', subTitle: '0'),
@@ -379,7 +467,33 @@ class _WorkOutState extends State<WorkOut> {
                                     children: [
                                       RunButton(
                                         onTap: () {
-                                          _stopRun();
+                                          showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) =>
+                                                  AlertDialog(
+                                                    title: const Text(
+                                                        "สิ้นสุดการวิ่ง"),
+                                                    content: const Text(
+                                                        "คุณยืนยันที่จะสิ้นสุดการวิ่ง?"),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context),
+                                                        child: const Text(
+                                                            'ยกเลิก'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () async {
+                                                          Navigator.pop(
+                                                              context);
+                                                          _stopRun();
+                                                        },
+                                                        child: const Text(
+                                                            'ยืนยัน'),
+                                                      ),
+                                                    ],
+                                                  ));
                                         },
                                         title: 'จบการจับเวลา',
                                         icon: Icons.stop_circle_outlined,

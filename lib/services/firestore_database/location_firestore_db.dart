@@ -1,7 +1,6 @@
 // ignore_for_file: constant_identifier_names
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:convert' as convert;
 import 'package:runex/models/models.dart';
 
 class LocationFirestoreDatabase {
@@ -12,10 +11,10 @@ class LocationFirestoreDatabase {
   CollectionReference locationCollection =
       FirebaseFirestore.instance.collection(COLLECTION_NAME);
 
-  Future create(Location location) {
+  Future<FirestoreReturn> create(Location location) {
     return locationDocument.set({
       '_id': location.id,
-      'runex_doc_id': locationDocument.id,
+      'runex_doc_id': location.docId,
       'odometer': location.odometer,
       'altitude': location.altitude,
       'heading': location.heading,
@@ -33,39 +32,40 @@ class LocationFirestoreDatabase {
       'is_charging': location.isCharging,
       'level': location.level
     }).then((value) {
-      return {'success': true, 'data': value};
+      return FirestoreReturn(success: true, data: locationDocument.id);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future read() {
+  Future<FirestoreReturn> read() {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .get()
         .then((QuerySnapshot querySnapshot) {
       // dynamic json = convert.jsonDecode(querySnapshot.docs.toList().toString());
       // List<Runex> runex = json.map((e) => Runex.fromJson(e)).toList();
-      return {'success': true, 'data': querySnapshot.docs.toList()};
+      // return {'success': true, 'data': querySnapshot.docs.toList()};
+      return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
     }).catchError((error) {
-      return convert.jsonDecode("{'success': ${false}, 'data': $error}");
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future readByProviderId(String providerId) {
+  Future<FirestoreReturn> readByProviderId(String providerId) {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .where('provider_id', isEqualTo: providerId)
         .orderBy('_id')
         .get()
         .then((QuerySnapshot querySnapshot) {
-      return {'success': true, 'data': querySnapshot.docs.toList()};
+      return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
     }).catchError((error) {
-      return convert.jsonDecode("{'success': ${false}, 'data': $error}");
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future update(Location location) {
+  Future<FirestoreReturn> update(Location location) {
     return locationCollection.doc(location.docId).update({
       'odometer': location.odometer,
       'altitude': location.altitude,
@@ -84,17 +84,17 @@ class LocationFirestoreDatabase {
       'is_charging': location.isCharging,
       'level': location.level
     }).then((value) {
-      return {'success': true, 'data': value};
+      return FirestoreReturn(success: true, data: location.docId);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 
-  Future delete(String docId) {
+  Future<FirestoreReturn> delete(String docId) {
     return locationCollection.doc(docId).delete().then((value) {
-      return {'success': true, 'data': value};
+      return FirestoreReturn(success: true, data: docId);
     }).catchError((error) {
-      return {'success': false, 'data': error};
+      return FirestoreReturn(success: false, data: error);
     });
   }
 }

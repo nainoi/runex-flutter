@@ -55,6 +55,14 @@ class RunexDatabase {
     return runexList;
   }
 
+  Future<List<Runex>> readById(int id) async {
+    Database db = await instance.database;
+    var runex = await db.query(TABLE_NAME, columns: ['*'], where: '_id = ?', whereArgs: [id]);
+    List<Runex> runexList =
+        runex.isNotEmpty ? runex.map((e) => Runex.fromJson(e)).toList() : [];
+    return runexList;
+  }
+
   Future<int> update(Runex runex) async {
     Database db = await instance.database;
     return await db.update(TABLE_NAME, runex.toJson(),

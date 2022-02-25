@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "248398089341",
-    "project_id": "firestore-example-ee400",
-    "storage_bucket": "firestore-example-ee400.appspot.com"
+    "project_number": "806162954772",
+    "project_id": "runex-6cd0e",
+    "storage_bucket": "runex-6cd0e.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:248398089341:android:1e4c141b5d34d4b2903514",
+        "mobilesdk_app_id": "1:806162954772:android:86d16722f53111defd4501",
         "android_client_info": {
           "package_name": "com.example.runex"
         }
       },
       "oauth_client": [
         {
-          "client_id": "248398089341-sb44hropvqts4foatr7m77m1s1jln024.apps.googleusercontent.com",
+          "client_id": "806162954772-uhu03rsq32nfq7a4kj5n9vrohhk3bisi.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAESObMOEx4bTRxSABrEc43EzcRtqiU34s"
+          "current_key": "AIzaSyAbdjlIuSUP1QpzIfjk_eQIHYhthyP84cw"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "248398089341-sb44hropvqts4foatr7m77m1s1jln024.apps.googleusercontent.com",
+              "client_id": "806162954772-uhu03rsq32nfq7a4kj5n9vrohhk3bisi.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

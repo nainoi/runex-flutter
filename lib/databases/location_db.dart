@@ -89,11 +89,11 @@ class LocationDatabase {
   Future<int> update(Location location) async {
     Database db = await instance.database;
     return await db.update(TABLE_NAME, location.toJson(),
-        where: 'id = ?', whereArgs: [location.id]);
+        where: '_id = ?', whereArgs: [location.id]);
   }
 
   Future<int> delete(int id) async {
     Database db = await instance.database;
-    return await db.delete(TABLE_NAME, where: 'id = ?', whereArgs: [id]);
+    return await db.delete(TABLE_NAME, where: '_id = ?', whereArgs: [id]);
   }
 }
