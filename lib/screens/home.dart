@@ -23,6 +23,26 @@ class _HomeState extends State<Home> {
   late bool _calledWorkoutPage = false;
   late InAppWebViewController _inAppWebViewController;
 
+  var userToken = '';
+  Future<String?> checkUserLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? loggedIn = prefs.getString("token");
+
+    if (loggedIn == null) {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Login()));
+    }
+    return loggedIn;
+  }
+
+  void asyncMethod() async {
+    var token = await checkUserLoggedIn();
+    setState(() {
+      userToken = token!;
+    });
+    print('User' + userToken);
+  }
+
   Future<bool> _requestPop() async {
     final url = await _inAppWebViewController.getUrl();
     if (url.toString() == Constants.runexUrl + Constants.mobileCodeUrl ||
@@ -37,6 +57,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    asyncMethod();
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }
 
@@ -52,9 +73,8 @@ class _HomeState extends State<Home> {
             ? InAppWebView(
                 initialOptions: InAppWebViewGroupOptions(
                     crossPlatform: InAppWebViewOptions(supportZoom: false)),
-                initialUrlRequest: URLRequest(
-                    url: Uri.parse(
-                        Constants.runexUrl + Constants.mobileCodeUrl)),
+                initialUrlRequest:
+                    URLRequest(url: Uri.parse(Constants.runexUrl + userToken)),
                 onWebViewCreated: (controller) {
                   _inAppWebViewController = controller;
                 },

@@ -36,40 +36,8 @@ class _LoginState extends State<Login> {
 
   Future<void> checkUserLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? logintype = prefs.getString("provider");
-    print("Login Type" + logintype.toString());
-    if (logintype == "LINE") {
-      try {
-        final result = await LineSDK.instance.getProfile();
-        prefs.setString('userData', result.toString());
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Home()));
-        // user id -> result.userId
-        // user name -> result.displayName
-        // user avatar -> result.pictureUrl
-      } on PlatformException catch (e) {
-        print(e.message);
-      }
-    } else if (logintype == "FACEBOOK") {
-      final accessToken = await FacebookAuth.instance.accessToken;
-      final userData = await FacebookAuth.instance.getUserData();
-      if (accessToken != null) {
-        // user is logged
-        prefs.setString('userData', userData.toString());
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Home()));
-      }
-    } else if (logintype == "GOOGLE") {
-      _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
-        setState(() {
-          _currentUser = account;
-        });
-        if (_currentUser != null) {
-          _handleGetContact(_currentUser!);
-        }
-      });
-      _googleSignIn.signInSilently();
-
+    final String? loggedIn = prefs.getString("token");
+    if (loggedIn != null) {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const Home()));
     }
@@ -307,23 +275,24 @@ class _LoginState extends State<Login> {
     final SharedPreferences prefs = await _prefs;
     if (method == "LINE") {
       try {
-        final result = await LineSDK.instance.login(scopes: ["profile"]);
-        print(result.toString());
+        final result = await LineSDK.instance
+            .login(scopes: ["profile", "openid", "email"]);
         var accesstoken = await getAccessToken();
         var displayname = result.userProfile?.displayName;
         var statusmessage = result.userProfile?.statusMessage;
         var imgUrl = result.userProfile?.pictureUrl;
         var userId = result.userProfile?.userId;
-        prefs.setString('userData', result.userProfile.toString());
-        prefs.setString('provider', "LINE");
-        print("AccessToken> " + accesstoken);
-        print("DisplayName> " + displayname!);
-        print("StatusMessage> " + statusmessage!);
-        print("ProfileURL> " + imgUrl!);
-        print("userId> " + userId!);
-
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Home()));
+        var email = result.accessToken.idToken!['email'];
+        final res =
+            await getUserToken(userId!, displayname!, imgUrl!, email, "LINE");
+        if (res['success']) {
+          prefs.setString("token", res['data']['code']);
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Home()));
+        } else {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Login()));
+        }
       } on PlatformException catch (e) {
         print(e);
         switch (e.code.toString()) {
@@ -440,17 +409,20 @@ class _LoginState extends State<Login> {
   }
 }
 
-Future<void> login(String userId, String tokenId, String name, String imgUrl,
-    String email) async {
-  final String url = "$apidomain/user/token/$userId";
-  final response = await http.patch(Uri.parse(url),
+Future<dynamic> getUserToken(String userId, String name, String imgUrl,
+    String email, String provider) async {
+  const String url = "$apidomain/account/create";
+  final response = await http.post(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: convert.json.encode({
-        'userId': userId,
-        'socialTokenId': tokenId,
-        'name': name,
-        'pictureUrl': imgUrl,
-        'email': email
+        "providerID": userId,
+        "providerName": provider,
+        "firstName": name,
+        "lastName": "",
+        "email": email,
+        "avatarUrl": imgUrl,
       }));
-  dynamic data = convert.jsonDecode(response.body);
+
+  dynamic result = convert.jsonDecode(response.body);
+  return result;
 }
