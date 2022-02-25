@@ -49,7 +49,7 @@ class _HomeState extends State<Home> {
 
   Future<bool> _requestPop() async {
     final url = await _inAppWebViewController.getUrl();
-    if (url.toString() == Constants.runexUrl + Constants.mobileCodeUrl ||
+    if (url.toString() == Constants.runexUrl + userToken ||
         url.toString() == Constants.runexUrl) {
       return Future.value(true);
     } else {

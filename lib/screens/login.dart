@@ -47,7 +47,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    checkUserLoggedIn();
+    //checkUserLoggedIn();
   }
 
   @override
@@ -288,6 +288,7 @@ class _LoginState extends State<Login> {
             await getUserToken(userId!, displayname!, imgUrl!, email, "LINE");
         if (res['success']) {
           prefs.setString("token", res['data']['code']);
+          prefs.setString("providerID", userId);
           Navigator.push(
               context, MaterialPageRoute(builder: (context) => const Home()));
         } else {
