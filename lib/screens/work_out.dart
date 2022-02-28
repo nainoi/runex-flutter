@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:runex/screens/screens.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:runex/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
     as bg;
@@ -130,13 +131,15 @@ class _WorkOutState extends State<WorkOut> {
       final startTime = Timestamp.fromDate(DateTime.now());
       bg.BackgroundGeolocation.start().then((value) async {
         bg.BackgroundGeolocation.setOdometer(0.0);
+        final date = DateTime.now();
         final response = await RunexDatabase.instance.create(Runex(
             providerId: 'ABCD1234',
-            startTime: DateTime.now().toIso8601String(),
+            monthAndYear: DateTimeUtils.getMonthAndYear(date),
+            startTime: date.toString(),
             endTime: '',
             distanceKm: 0.0,
             timeHrs: 0.0,
-            isSaved: true));
+            isSaved: false));
         if (response > 0) {
           _refreshRunex();
           prefs.setBool('_isStartedRun', true);
@@ -187,11 +190,12 @@ class _WorkOutState extends State<WorkOut> {
       await RunexDatabase.instance.update(Runex(
           id: _runexId,
           providerId: 'ABCD1234',
+          monthAndYear: data[0].monthAndYear,
           startTime: data[0].startTime,
-          endTime: DateTime.now().toIso8601String(),
+          endTime: DateTime.now().toString(),
           distanceKm: double.parse(_odometer),
           timeHrs: timer / 3600,
-          isSaved: data[0].isSaved,
+          isSaved: true,
           docId: null));
       setState(() {
         timer = 0;
@@ -209,6 +213,7 @@ class _WorkOutState extends State<WorkOut> {
           MaterialPageRoute(
               builder: (context) => WorkOutResult(
                     runexId: _runexId,
+                    isSend: false,
                   )));
     } catch (e) {}
   }
@@ -372,7 +377,6 @@ class _WorkOutState extends State<WorkOut> {
   LatLng _createLatLng(double lat, double lng) {
     return LatLng(lat, lng);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -541,7 +545,7 @@ class RunButton extends StatelessWidget {
           onTap: onTap,
           child: Icon(
             icon,
-            size: 100,
+            size: 80,
             color: iconColor,
           ),
         ),

@@ -10,10 +10,18 @@ import 'package:runex/databases/databases.dart';
 import 'package:runex/models/models.dart';
 import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/services/firestore_database/firestore_database.dart';
+import 'package:runex/utils/datetime_utils.dart';
 
 class WorkOutResult extends StatefulWidget {
   final int runexId;
-  const WorkOutResult({Key? key, required this.runexId}) : super(key: key);
+  final bool isSend;
+  final dynamic? runexFirestore;
+  const WorkOutResult(
+      {Key? key,
+      required this.runexId,
+      required this.isSend,
+      this.runexFirestore})
+      : super(key: key);
 
   @override
   _WorkOutResultState createState() => _WorkOutResultState();
@@ -135,6 +143,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
               } else {
                 await RunexDatabase.instance.update(Runex(
                     providerId: _runex[0].providerId,
+                    monthAndYear: _runex[0].monthAndYear,
                     docId: response.data,
                     startTime: _runex[0].startTime,
                     isSaved: _runex[0].isSaved));
@@ -183,7 +192,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
   @override
   void initState() {
     super.initState();
-    _getRunexAndLocation();
+    if (!widget.isSend) {
+      _getRunexAndLocation();
+    }
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }
 
@@ -234,7 +245,13 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                           color: Colors.white, fontSize: 22),
                                     ),
                                     Text(
-                                      '${_locations.isNotEmpty ? _runex[0].distanceKm : '0.00'}(km)',
+                                      _locations.isNotEmpty && !widget.isSend
+                                          ? _runex[0].distanceKm.toString()
+                                          : widget.isSend
+                                              ? widget.runexFirestore[
+                                                      'distance_total_km']
+                                                  .toString()
+                                              : "0.00(km)",
                                       style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 28,
@@ -253,7 +270,17 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                           color: Colors.white, fontSize: 22),
                                     ),
                                     Text(
-                                      '${_runex.isNotEmpty ? _formatTime(((_runex[0].timeHrs)! * 3600).round()) : '00:00:00'}',
+                                      _runex.isNotEmpty && !widget.isSend
+                                          ? _formatTime(
+                                              ((_runex[0].timeHrs)! * 3600)
+                                                  .round())
+                                          : widget.isSend
+                                              ? _formatTime((widget
+                                                              .runexFirestore[
+                                                          'time_total_hours'] *
+                                                      3600)
+                                                  .round())
+                                              : '00:00:00',
                                       style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 28,
@@ -261,9 +288,15 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                     ),
                                     Wrap(children: [
                                       Text(
-                                        _runex.isNotEmpty
+                                        _runex.isNotEmpty && !widget.isSend
                                             ? _runex[0].startTime
-                                            : '00:00:00',
+                                            : widget.isSend
+                                                ? DateTimeUtils.getFullDate(
+                                                    DateTime.parse(widget
+                                                        .runexFirestore[
+                                                            'start_time']
+                                                        .toString()))
+                                                : '00:00:00',
                                         style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 12,
@@ -287,14 +320,25 @@ class _WorkOutResultState extends State<WorkOutResult> {
                           children: [
                             _RunDetail(
                               title: 'ระยะทาง(km)',
-                              subTitle: _locations.isNotEmpty
+                              subTitle: _locations.isNotEmpty && !widget.isSend
                                   ? _runex[0].distanceKm.toString()
-                                  : '0.00',
+                                  : widget.isSend
+                                      ? widget
+                                          .runexFirestore['distance_total_km']
+                                          .toString()
+                                      : '0.00',
                             ),
                             _RunDetail(
                               title: 'ระยะเวลา',
-                              subTitle:
-                                  '${_runex.isNotEmpty ? _formatTime(((_runex[0].timeHrs)! * 3600).round()) : '00:00:00'}',
+                              subTitle: _runex.isNotEmpty && !widget.isSend
+                                  ? _formatTime(
+                                      ((_runex[0].timeHrs)! * 3600).round())
+                                  : widget.isSend
+                                      ? _formatTime((widget.runexFirestore[
+                                                  'time_total_hours'] *
+                                              3600)
+                                          .round())
+                                      : '00:00:00',
                             ),
                             _RunDetail(
                               title: '(min/km)',
@@ -314,27 +358,29 @@ class _WorkOutResultState extends State<WorkOutResult> {
                               padding: const EdgeInsets.only(top: 6, bottom: 6),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) =>
-                                          AlertDialog(
-                                            title: const Text("ยืนยันการส่งผล"),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(context),
-                                                child: const Text('ยกเลิก'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () async {
-                                                  Navigator.pop(context);
-                                                  _onProgress();
-                                                },
-                                                child: const Text('ยืนยัน'),
-                                              ),
-                                            ],
-                                          ));
-                                  ;
+                                  if (!widget.isSend) {
+                                    showDialog(
+                                        context: context,
+                                        builder: (BuildContext context) =>
+                                            AlertDialog(
+                                              title:
+                                                  const Text("ยืนยันการส่งผล"),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('ยกเลิก'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () async {
+                                                    Navigator.pop(context);
+                                                    _onProgress();
+                                                  },
+                                                  child: const Text('ยืนยัน'),
+                                                ),
+                                              ],
+                                            ));
+                                  }
                                 },
                                 child: Text(
                                   'ส่งผล',
@@ -345,7 +391,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                 ),
                                 style: ElevatedButton.styleFrom(
                                     fixedSize: Size(150, 50),
-                                    primary: Colors.amber[300],
+                                    primary: !widget.isSend
+                                        ? Colors.amber[300]
+                                        : Colors.grey,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(25.0)))),
