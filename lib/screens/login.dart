@@ -278,9 +278,7 @@ class _LoginState extends State<Login> {
       try {
         final result = await LineSDK.instance
             .login(scopes: ["profile", "openid", "email"]);
-        var accesstoken = await getAccessToken();
         var displayname = result.userProfile?.displayName;
-        var statusmessage = result.userProfile?.statusMessage;
         var imgUrl = result.userProfile?.pictureUrl;
         var userId = result.userProfile?.userId;
         var email = result.accessToken.idToken!['email'];
@@ -324,8 +322,6 @@ class _LoginState extends State<Login> {
         if (result.status == LoginStatus.success) {
           // you are logged
           final userData = await FacebookAuth.instance.getUserData();
-          print(userData);
-          final accessToken = result.accessToken!;
           var displayname = userData['name'];
           var imgUrl = userData['picture']['data']['url'];
           var userId = userData['id'];
@@ -368,11 +364,22 @@ class _LoginState extends State<Login> {
     } else if (method == "GOOGLE") {
       try {
         await _googleSignIn.signIn();
-        print(_googleSignIn.clientId);
-        prefs.setString('userData', _googleSignIn.currentUser.toString());
-        prefs.setString('provider', "GOOGLE");
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Home()));
+        final userData = _googleSignIn.currentUser!;
+        var displayname = userData.displayName;
+        var imgUrl = userData.photoUrl.toString();
+        var userId = userData.id;
+        var email = userData.email;
+        final res =
+            await getUserToken(userId, displayname!, imgUrl, email, "GOOGLE");
+        if (res['success']) {
+          prefs.setString("token", res['data']['code']);
+          prefs.setString("providerID", userId);
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Home()));
+        } else {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Login()));
+        }
       } on PlatformException catch (e) {
         print(e);
         switch (e.code.toString()) {

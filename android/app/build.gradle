@@ -58,10 +58,10 @@ android {
     }
     signingConfigs {
     debug {
-        // storeFile file('key.jks')
-        // storePassword 'runexdemo'
-        // keyAlias 'androiddebugkey'
-        // keyPassword 'runexdemo'
+        storeFile file('key.jks')
+        storePassword 'runexdemo'
+        keyAlias 'androiddebugkey'
+        keyPassword 'runexdemo'
     }
 }
 
