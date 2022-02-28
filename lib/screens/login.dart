@@ -278,9 +278,7 @@ class _LoginState extends State<Login> {
       try {
         final result = await LineSDK.instance
             .login(scopes: ["profile", "openid", "email"]);
-        var accesstoken = await getAccessToken();
         var displayname = result.userProfile?.displayName;
-        var statusmessage = result.userProfile?.statusMessage;
         var imgUrl = result.userProfile?.pictureUrl;
         var userId = result.userProfile?.userId;
         var email = result.accessToken.idToken!['email'];
@@ -324,13 +322,21 @@ class _LoginState extends State<Login> {
         if (result.status == LoginStatus.success) {
           // you are logged
           final userData = await FacebookAuth.instance.getUserData();
-          print(userData);
-          prefs.setString('provider', "FACEBOOK");
-          prefs.setString('userData', userData.toString());
-          final accessToken = result.accessToken!;
-
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => const Home()));
+          var displayname = userData['name'];
+          var imgUrl = userData['picture']['data']['url'];
+          var userId = userData['id'];
+          var email = userData['email'];
+          final res = await getUserToken(
+              userId!, displayname!, imgUrl!, email, "FACEBOOK");
+          if (res['success']) {
+            prefs.setString("token", res['data']['code']);
+            prefs.setString("providerID", userId);
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => const Home()));
+          } else {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const Login()));
+          }
         } else {
           print(result.status);
           print(result.message);
@@ -358,11 +364,22 @@ class _LoginState extends State<Login> {
     } else if (method == "GOOGLE") {
       try {
         await _googleSignIn.signIn();
-        print(_googleSignIn.clientId);
-        prefs.setString('userData', _googleSignIn.currentUser.toString());
-        prefs.setString('provider', "GOOGLE");
-        Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const Home()));
+        final userData = _googleSignIn.currentUser!;
+        var displayname = userData.displayName;
+        var imgUrl = userData.photoUrl.toString();
+        var userId = userData.id;
+        var email = userData.email;
+        final res =
+            await getUserToken(userId, displayname!, imgUrl, email, "GOOGLE");
+        if (res['success']) {
+          prefs.setString("token", res['data']['code']);
+          prefs.setString("providerID", userId);
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Home()));
+        } else {
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => const Login()));
+        }
       } on PlatformException catch (e) {
         print(e);
         switch (e.code.toString()) {
@@ -413,6 +430,14 @@ class _LoginState extends State<Login> {
 
 Future<dynamic> getUserToken(String userId, String name, String imgUrl,
     String email, String provider) async {
+  print(convert.json.encode({
+    "providerID": userId,
+    "providerName": provider,
+    "firstName": name,
+    "lastName": "",
+    "email": email,
+    "avatarUrl": imgUrl,
+  }));
   const String url = "$apidomain/account/create";
   final response = await http.post(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
