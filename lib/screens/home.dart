@@ -82,6 +82,21 @@ class _HomeState extends State<Home> {
                 onWebViewCreated: (controller) {
                   _inAppWebViewController = controller;
                 },
+                onUpdateVisitedHistory: (controller, url, _bool) {
+                  if (url.toString().contains("/mobile/history") &&
+                      !_calledWorkoutPage) {
+                    setState(() {
+                      _calledWorkoutPage = true;
+                    });
+                    Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => WorkOutHistory()))
+                        .then((_) => setState(() {
+                              _calledWorkoutPage = false;
+                            }));
+                  }
+                },
                 onLoadStop: (controller, uri) {
                   if (uri.toString().contains(Constants.workOutUrlKeyword) &&
                       !_calledWorkoutPage) {
