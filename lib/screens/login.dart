@@ -325,12 +325,22 @@ class _LoginState extends State<Login> {
           // you are logged
           final userData = await FacebookAuth.instance.getUserData();
           print(userData);
-          prefs.setString('provider', "FACEBOOK");
-          prefs.setString('userData', userData.toString());
           final accessToken = result.accessToken!;
-
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => const Home()));
+          var displayname = userData['name'];
+          var imgUrl = userData['picture']['data']['url'];
+          var userId = userData['id'];
+          var email = userData['email'];
+          final res = await getUserToken(
+              userId!, displayname!, imgUrl!, email, "FACEBOOK");
+          if (res['success']) {
+            prefs.setString("token", res['data']['code']);
+            prefs.setString("providerID", userId);
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => const Home()));
+          } else {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const Login()));
+          }
         } else {
           print(result.status);
           print(result.message);
@@ -413,6 +423,14 @@ class _LoginState extends State<Login> {
 
 Future<dynamic> getUserToken(String userId, String name, String imgUrl,
     String email, String provider) async {
+  print(convert.json.encode({
+    "providerID": userId,
+    "providerName": provider,
+    "firstName": name,
+    "lastName": "",
+    "email": email,
+    "avatarUrl": imgUrl,
+  }));
   const String url = "$apidomain/account/create";
   final response = await http.post(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
