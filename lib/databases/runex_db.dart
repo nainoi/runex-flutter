@@ -37,7 +37,8 @@ class RunexDatabase {
         distance_total_km $TEXT_TYPE,
         time_total_hours $TEXT_TYPE,
         is_saved $BOOLEAN_TYPE $NOT_NULL,
-        _doc_id $TEXT_TYPE
+        _doc_id $TEXT_TYPE,
+        month_and_year $TEXT_TYPE $NOT_NULL
       )
     ''');
   }
@@ -57,9 +58,34 @@ class RunexDatabase {
 
   Future<List<Runex>> readById(int id) async {
     Database db = await instance.database;
-    var runex = await db.query(TABLE_NAME, columns: ['*'], where: '_id = ?', whereArgs: [id]);
+    var runex = await db.query(TABLE_NAME,
+        columns: ['*'], where: '_id = ?', whereArgs: [id]);
     List<Runex> runexList =
         runex.isNotEmpty ? runex.map((e) => Runex.fromJson(e)).toList() : [];
+    return runexList;
+  }
+
+  Future<List<Runex>> readByProviderId(String providerId) async {
+    Database db = await instance.database;
+    var runex = await db.query(TABLE_NAME,
+        columns: ['*'],
+        where: 'provider_id = ?',
+        whereArgs: [providerId],
+        orderBy: '_id');
+    List<Runex> runexList =
+        runex.isNotEmpty ? runex.map((e) => Runex.fromJson(e)).toList() : [];
+    return runexList;
+  }
+
+  Future<List> readByMonthAndYear(String providerId) async {
+    Database db = await instance.database;
+    var runex = await db.query(TABLE_NAME,
+        columns: ['month_and_year'],
+        where: 'provider_id = ?',
+        whereArgs: [providerId],
+        groupBy: 'month_and_year',
+        orderBy: '_id');
+    List runexList = runex;
     return runexList;
   }
 

@@ -19,7 +19,9 @@ class RunexFirestoreDatabase {
       'distance_total_km': runex.distanceKm,
       'time_total_hours': runex.timeHrs,
       '_doc_id': runexDocument.id,
-      'is_saved': runex.isSaved
+      'is_saved': runex.isSaved,
+      'month_and_year': runex.monthAndYear
+
     }).then((value) {
       return FirestoreReturn(success: true, data: runexDocument.id);
     }).catchError((error) {
@@ -44,7 +46,7 @@ class RunexFirestoreDatabase {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .where('provider_id', isEqualTo: providerId)
-        .orderBy('_id')
+        // .orderBy('_id')
         .get()
         .then((QuerySnapshot querySnapshot) {
       return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
