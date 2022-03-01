@@ -24,12 +24,11 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late bool _calledWorkoutPage = false;
   late InAppWebViewController _inAppWebViewController;
-
+  late bool _canDisplayScreen = false;
   var userToken = '';
   Future<String?> checkUserLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final String? loggedIn = prefs.getString("token");
-
     if (loggedIn == null) {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const Login()));
@@ -37,14 +36,20 @@ class _HomeState extends State<Home> {
     return loggedIn;
   }
 
+  _timer() {
+    Timer(const Duration(milliseconds: 500), () {
+      setState(() {
+        _canDisplayScreen = true;
+      });
+    });
+  }
+
   void asyncMethod() async {
     var token = await checkUserLoggedIn();
-    print(token);
     setState(() {
       userToken = token!;
     });
-    print('URL' + Constants.runexUrl + userToken);
-    print('User' + userToken);
+
   }
 
   Future<bool> _requestPop() async {
@@ -62,6 +67,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     asyncMethod();
+    _timer();
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }
 
@@ -82,8 +88,19 @@ class _HomeState extends State<Home> {
                 onWebViewCreated: (controller) {
                   _inAppWebViewController = controller;
                 },
-                onUpdateVisitedHistory: (controller, url, _bool) {
-                  if (url.toString().contains("/mobile/history") &&
+                onLoadStop: (controller, uri) {
+                  if (uri.toString().contains(Constants.workOutUrlKeyword) &&
+                      !_calledWorkoutPage) {
+                    _calledWorkoutPage = true;
+                    Navigator.push(context,
+                            MaterialPageRoute(builder: (context) => WorkOut()))
+                        .then((_) => setState(() {
+                              _calledWorkoutPage = false;
+                            }));
+                    _inAppWebViewController.reload();
+                  } else if (uri
+                          .toString()
+                          .contains(Constants.historyUrlKeyword) &&
                       !_calledWorkoutPage) {
                     setState(() {
                       _calledWorkoutPage = true;
@@ -95,18 +112,6 @@ class _HomeState extends State<Home> {
                         .then((_) => setState(() {
                               _calledWorkoutPage = false;
                             }));
-                  }
-                },
-                onLoadStop: (controller, uri) {
-                  if (uri.toString().contains(Constants.workOutUrlKeyword) &&
-                      !_calledWorkoutPage) {
-                    _calledWorkoutPage = true;
-                    Navigator.push(context,
-                            MaterialPageRoute(builder: (context) => WorkOut()))
-                        .then((_) => setState(() {
-                              _calledWorkoutPage = false;
-                            }));
-                    _inAppWebViewController.reload();
                   }
                 },
                 androidOnPermissionRequest: (InAppWebViewController controller,
@@ -143,7 +148,9 @@ class _HomeState extends State<Home> {
     return WillPopScope(
       onWillPop: _requestPop,
       child: SafeArea(
-        child: Scaffold(backgroundColor: Colors.black87, body: _body()),
+        child: Scaffold(
+            backgroundColor: Colors.black87,
+            body: _canDisplayScreen ? _body() : Container()),
       ),
     );
   }

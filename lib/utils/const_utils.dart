@@ -3,5 +3,6 @@ class Constants {
       'mobile?code=384f05e87c133740071a809a29b65905b55a8859';
   static const String runexUrl =
       'https://runex-my-next.thinkdev.app/mobile?code=';
-  static const String workOutUrlKeyword = '#';
+  static const String workOutUrlKeyword = '#workout';
+  static const String historyUrlKeyword = '#activities';
 }
