@@ -40,7 +40,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
   late StreamSubscription subscription;
   late StreamSubscription internetSubscription;
 
-  _getRunexAndLocation() async {
+  _getRunexAndLocationDb() async {
     final runex = await RunexDatabase.instance.readById(widget.runexId);
     final locations =
         await LocationDatabase.instance.readByRunexId(widget.runexId);
@@ -77,6 +77,46 @@ class _WorkOutResultState extends State<WorkOutResult> {
       setState(() {
         polylines[polylineId] = polyline;
       });
+    }
+  }
+
+  _getLocationFirestor() async {
+    LocationFirestoreDatabase locationFirestoreDatabase =
+        LocationFirestoreDatabase();
+    final providerID = "ABCD1234";
+    final locationFirestor =
+        await locationFirestoreDatabase.readByRunexDocId(providerID);
+    if (locationFirestor.success) {
+      final List locationList = locationFirestor.data;
+      if (locationList.isNotEmpty) {
+        _controller?.animateCamera(CameraUpdate.newCameraPosition(
+            CameraPosition(
+                target: LatLng(
+                    locationList[0]['latitude'], locationList[0]['longitude']),
+                bearing: 270.0,
+                tilt: 30.0,
+                zoom: 17.0)));
+
+        for (var i = 0; i < locationList.length; i++) {
+          setState(() {
+            points.add(_createLatLng(
+                locationList[i]['latitude'], locationList[i]['longitude']));
+          });
+          final String polylineIdVal = 'polyline_id_$i';
+          final PolylineId polylineId = PolylineId(polylineIdVal);
+
+          final Polyline polyline = Polyline(
+            polylineId: polylineId,
+            consumeTapEvents: true,
+            color: Colors.orange,
+            width: 10,
+            points: points,
+          );
+          setState(() {
+            polylines[polylineId] = polyline;
+          });
+        }
+      }
     }
   }
 
@@ -193,7 +233,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
   void initState() {
     super.initState();
     if (!widget.isSend) {
-      _getRunexAndLocation();
+      _getRunexAndLocationDb();
+    } else {
+      _getLocationFirestor();
     }
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }

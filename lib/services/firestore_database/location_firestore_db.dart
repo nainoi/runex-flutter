@@ -52,16 +52,26 @@ class LocationFirestoreDatabase {
     });
   }
 
-  Future<FirestoreReturn> readByProviderId(String providerId) {
+  Future<FirestoreReturn> readByRunexDocId(String runexDocId) {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
-        .where('provider_id', isEqualTo: providerId)
-        .orderBy('_id')
         .get()
         .then((QuerySnapshot querySnapshot) {
-      return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
-    }).catchError((error) {
-      return FirestoreReturn(success: false, data: error);
+      if (querySnapshot.docs.toList().isNotEmpty) {
+        return FirebaseFirestore.instance
+            .collection(COLLECTION_NAME)
+            .where('runex_doc_id', isEqualTo: runexDocId)
+            .orderBy('_id')
+            .get()
+            .then((QuerySnapshot querySnapshotFilter) {
+          return FirestoreReturn(
+              success: true, data: querySnapshotFilter.docs.toList());
+        }).catchError((error) {
+          return FirestoreReturn(success: false, data: error);
+        });
+      } else {
+        return FirestoreReturn(success: true, data: []);
+      }
     });
   }
 
