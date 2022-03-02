@@ -12,7 +12,6 @@ import 'package:runex/utils/const_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert' as convert;
 
-
 import 'package:runex/screens/home.dart';
 
 GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -48,7 +47,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    checkUserLoggedIn();
+    //checkUserLoggedIn();
   }
 
   @override

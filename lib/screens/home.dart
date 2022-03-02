@@ -49,7 +49,6 @@ class _HomeState extends State<Home> {
     setState(() {
       userToken = token!;
     });
-
   }
 
   Future<bool> _requestPop() async {
@@ -105,6 +104,7 @@ class _HomeState extends State<Home> {
                     setState(() {
                       _calledWorkoutPage = true;
                     });
+
                     Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -112,6 +112,12 @@ class _HomeState extends State<Home> {
                         .then((_) => setState(() {
                               _calledWorkoutPage = false;
                             }));
+                  } else if (uri
+                      .toString()
+                      .contains(Constants.logoutUrlKeyword)) {
+                    logout();
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => Login()));
                   }
                 },
                 androidOnPermissionRequest: (InAppWebViewController controller,
@@ -155,12 +161,10 @@ class _HomeState extends State<Home> {
     );
   }
 
-  void _signIn() async {
-    try {
-      final result = await LineSDK.instance.login();
-      // user id -> result.userProfile?.userId
-      // user name -> result.userProfile?.displayName
-      // user avatar -> result.userProfile?.pictureUrl
-    } on PlatformException catch (e) {}
+  void logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.clear();
+    print("Provider" + prefs.getString("providerID").toString());
+    print("token" + prefs.getString("token").toString());
   }
 }
