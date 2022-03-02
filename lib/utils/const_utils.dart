@@ -5,4 +5,7 @@ class Constants {
       'https://runex-my-next.thinkdev.app/mobile?code=';
   static const String workOutUrlKeyword = '#workout';
   static const String historyUrlKeyword = '#activities';
+  static const String apidomain =
+      'https://auth.thinkdev.app/v1'; //Production https://auth.runex.co/v1
+  static const String logoutUrlKeyword = "#logout";
 }
