@@ -8,10 +8,11 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:runex/utils/const_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert' as convert;
 
-import 'package:runex/constants/constant.dart';
+
 import 'package:runex/screens/home.dart';
 
 GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -438,7 +439,7 @@ Future<dynamic> getUserToken(String userId, String name, String imgUrl,
     "email": email,
     "avatarUrl": imgUrl,
   }));
-  const String url = "$apidomain/account/create";
+  const String url = "${Constants.apidomain}/account/create";
   final response = await http.post(Uri.parse(url),
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: convert.json.encode({
