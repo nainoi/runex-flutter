@@ -54,7 +54,10 @@ class RunexFirestoreDatabase {
   }
 
   Future<FirestoreReturn> readByMonthAndYear(String providerId) {
-    var map = Map();
+    var runexCountMap = Map();
+    var distanceMap = Map();
+    var timeMap = Map();
+    var calMap = Map();
 
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
@@ -65,16 +68,34 @@ class RunexFirestoreDatabase {
         .get()
         .then((QuerySnapshot querySnapshot) {
       querySnapshot.docs.map((e) {
-        if (!map.containsKey(e['month_and_year'])) {
-          map[e['month_and_year']] = 1;
+        if (!distanceMap.containsKey(e['month_and_year'])) {
+          distanceMap[e['month_and_year']] = 0.0;
+          distanceMap[e['month_and_year']] += e['distance_total_km'];
+
+          timeMap[e['month_and_year']] = 0.0;
+          timeMap[e['month_and_year']] += e['time_total_hours'];
+
+          runexCountMap[e['month_and_year']] = 1;
+
+          // calMap[e['month_and_year']] = 0.0;
+          // calMap[e['month_and_year']] += e['cal_total'];
         } else {
-          map[e['month_and_year']] += 1;
+          distanceMap[e['month_and_year']] += e['distance_total_km'];
+          timeMap[e['month_and_year']] += e['time_total_hours'];
+          runexCountMap[e['month_and_year']] += 1;
         }
       }).toList();
-      final list = map.keys.toList();
+      final runexCountList = runexCountMap.keys.toList();
+      final runexCountValuesList = runexCountMap.values.toList();
+      final distanceList = distanceMap.values.toList();
+      final timeList = timeMap.values.toList();
       List<MonthAndYear> monthAndYear = [];
-      for (var i = 0; i < list.length; i++) {
-        monthAndYear.add(MonthAndYear(monthAndYear: list[i]));
+      for (var i = 0; i < runexCountList.length; i++) {
+        monthAndYear.add(MonthAndYear(
+            monthAndYear: runexCountList[i],
+            runexCount: runexCountValuesList[i],
+            distanceTotal: distanceList[i],
+            timeTotal: timeList[i]));
       }
       return FirestoreReturn(success: true, data: monthAndYear);
     }).catchError((error) {

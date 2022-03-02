@@ -18,7 +18,6 @@ class WorkOutHistory extends StatefulWidget {
 class _WorkOutHistoryState extends State<WorkOutHistory> {
   late SharedPreferences prefs;
   late bool _selectedAlreadySend = true;
-  late int _selectHeaderIndex = 0;
   late bool _isLoading = false;
   late List<Runex> runexDb = [];
   late List runexFirestore = [];
@@ -27,23 +26,30 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
 
   Future<void> _getRunexAndLocation() async {
     prefs = await SharedPreferences.getInstance();
-    final providerId = "ABCD1234"; //prefs.getString("providerID");
-    final _runexDb = await RunexDatabase.instance.readByProviderId(providerId);
-    final mothAndYearDb =
-        await RunexDatabase.instance.readByMonthAndYear(providerId);
+    final providerId = prefs.getString("providerID") ?? '';
+    if (providerId != '') {
+      setState(() {
+        _isLoading = true;
+      });
+      final _runexDb =
+          await RunexDatabase.instance.readByProviderId(providerId);
+      final mothAndYearDb =
+          await RunexDatabase.instance.readByMonthAndYear(providerId);
 
-    RunexFirestoreDatabase runexFirestoreDatabase = RunexFirestoreDatabase();
-    final _runexFirestore =
-        await runexFirestoreDatabase.readByProviderId(providerId);
-    final monthAndYearFirestore =
-        await runexFirestoreDatabase.readByMonthAndYear(providerId);
-    setState(() {
-      runexFirestore = _runexFirestore.data;
-      runexDb = _runexDb;
-      _selectedAlreadySend = _runexFirestore.success ? true : false;
-      runexMothAndYearDb = mothAndYearDb;
-      runexMothAndYearFirestore = monthAndYearFirestore.data;
-    });
+      RunexFirestoreDatabase runexFirestoreDatabase = RunexFirestoreDatabase();
+      final _runexFirestore =
+          await runexFirestoreDatabase.readByProviderId(providerId);
+      final monthAndYearFirestore =
+          await runexFirestoreDatabase.readByMonthAndYear(providerId);
+      setState(() {
+        runexFirestore = _runexFirestore.data;
+        runexDb = _runexDb;
+        _selectedAlreadySend = _runexFirestore.success ? true : false;
+        runexMothAndYearDb = mothAndYearDb;
+        runexMothAndYearFirestore = monthAndYearFirestore.data;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -52,34 +58,26 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
     _getRunexAndLocation();
   }
 
-  ExpansionPanel _buildExpansionPanelFirestore(
-      MonthAndYear item, int selectHeaderIndex) {
-    late int runexCount = 0;
-    var runexCountMap = Map();
-    var distanceMap = {};
-    for (var i = 0; i < runexFirestore.length; i++) {
-      runexCount += 1;
-      if (!runexCountMap.keys.contains(item.monthAndYear)) {
-        runexCountMap[item.monthAndYear] = 1;
-      } else {
-        runexCountMap[item.monthAndYear] += 1;
-      }
-    }
+  _formatTime(int seconds) {
+    return '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
+  }
+
+  ExpansionPanel _buildExpansionPanelFirestore(MonthAndYear item) {
     return ExpansionPanel(
         isExpanded: item.isExpanded,
         backgroundColor: Colors.transparent,
         canTapOnHeader: true,
         headerBuilder: (BuildContext context, bool isExpanded) {
           return ExpandedHeader(
-            runCount: runexCount.toString(),
+            runCount: item.runexCount.toString(),
             dateTime: item.monthAndYear,
-            distance: "0.00",
-            time: "00:00:00",
+            distance: item.distanceTotal.toStringAsFixed(2),
+            time: _formatTime((item.timeTotal * 3600).round()),
             cal: "0.00",
           );
         },
         body: SizedBox(
-          height: 200,
+          height: item.runexCount > 5 ? 400 : 100 * (item.runexCount * 1.0),
           child: ListView.builder(
               itemBuilder: (BuildContext context, int index) {
                 if (runexFirestore[index]['month_and_year'] ==
@@ -106,34 +104,22 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
         ));
   }
 
-  ExpansionPanel _buildExpansionPanelDb(
-      MonthAndYear item, int selectHeaderIndex) {
-    late int runexCount = 0;
-    var runexCountMap = {};
-    var distanceMap = {};
-    for (var i = 0; i < runexDb.length; i++) {
-      runexCount += 1;
-      if (!runexCountMap.keys.contains(item.monthAndYear)) {
-        runexCountMap[item.monthAndYear] = 1;
-      } else {
-        runexCountMap[item.monthAndYear] += 1;
-      }
-    }
+  ExpansionPanel _buildExpansionPanelDb(MonthAndYear item) {
     return ExpansionPanel(
         isExpanded: item.isExpanded,
         backgroundColor: Colors.transparent,
         canTapOnHeader: true,
         headerBuilder: (BuildContext context, bool isExpanded) {
           return ExpandedHeader(
-            runCount: runexCount.toString(),
+            runCount: item.runexCount.toString(),
             dateTime: item.monthAndYear,
-            distance: "0.00",
-            time: "00:00:00",
+            distance: item.distanceTotal.toString(),
+            time: _formatTime((item.timeTotal * 3600).round()),
             cal: "0.00",
           );
         },
         body: SizedBox(
-          height: 200,
+          height: item.runexCount > 5 ? 400 : 100 * (item.runexCount * 1.0),
           child: ListView.builder(
               itemBuilder: (BuildContext context, int index) {
                 if (runexDb[index].monthAndYear == item.monthAndYear) {
@@ -223,30 +209,38 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
               ],
             ),
           ),
-          _selectedAlreadySend
-              ? ExpansionPanelList(
-                  expansionCallback: (int index, bool isExpanded) {
-                    setState(() {
-                      runexMothAndYearFirestore[index].isExpanded = !isExpanded;
-                      _selectHeaderIndex = index;
-                    });
-                  },
-                  children: runexMothAndYearFirestore
-                      .map((e) =>
-                          _buildExpansionPanelFirestore(e, _selectHeaderIndex))
-                      .toList(),
-                )
-              : ExpansionPanelList(
-                  expansionCallback: (int index, bool isExpanded) {
-                    setState(() {
-                      runexMothAndYearDb[index].isExpanded = !isExpanded;
-                      _selectHeaderIndex = index;
-                    });
-                  },
-                  children: runexMothAndYearDb
-                      .map((e) => _buildExpansionPanelDb(e, _selectHeaderIndex))
-                      .toList(),
-                ),
+          if (_selectedAlreadySend)
+            if (_isLoading)
+              CircularProgressIndicator(
+                color: Colors.amber,
+              )
+            else
+              ExpansionPanelList(
+                expansionCallback: (int index, bool isExpanded) {
+                  setState(() {
+                    runexMothAndYearFirestore[index].isExpanded = !isExpanded;
+                  });
+                },
+                children: runexMothAndYearFirestore
+                    .map((e) => _buildExpansionPanelFirestore(e))
+                    .toList(),
+              )
+          else if (!_selectedAlreadySend)
+            if (_isLoading)
+              CircularProgressIndicator(
+                color: Colors.amber,
+              )
+            else
+              ExpansionPanelList(
+                expansionCallback: (int index, bool isExpanded) {
+                  setState(() {
+                    runexMothAndYearDb[index].isExpanded = !isExpanded;
+                  });
+                },
+                children: runexMothAndYearDb
+                    .map((e) => _buildExpansionPanelDb(e))
+                    .toList(),
+              )
         ],
       )),
     );
@@ -268,43 +262,59 @@ class ExpandedBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(40, 16, 16, 16),
+      padding: const EdgeInsets.fromLTRB(40, 18, 24, 0),
       child: GestureDetector(
         onTap: onTap,
-        child: Row(
+        child: Column(
           children: [
-            Icon(
-              Icons.run_circle_outlined,
-              size: 45,
-              color: Colors.amber[400],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.run_circle_outlined,
+                  size: 45,
+                  color: Colors.amber[400],
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            DateTimeUtils.getFullDateInNumber(
+                                DateTime.parse(startTime)),
+                            style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500)),
+                        SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              DateTimeUtils.getFullTime(
+                                  DateTime.parse(startTime)),
+                              style:
+                                  TextStyle(color: Colors.grey, fontSize: 14),
+                            ),
+                            // SizedBox(width: 50),
+                            Text('$distance km',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                )
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                      DateTimeUtils.getFullDateInNumber(
-                          DateTime.parse(startTime)),
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500)),
-                  SizedBox(height: 5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        DateTimeUtils.getFullTime(DateTime.parse(startTime)),
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                      SizedBox(width: 50),
-                      Text('$distance km',
-                          style: TextStyle(color: Colors.grey, fontSize: 14)),
-                    ],
-                  )
-                ],
-              ),
+              padding: const EdgeInsets.only(left: 20, top: 9),
+              child: Divider(color: Colors.grey),
             )
           ],
         ),
@@ -348,12 +358,12 @@ class ExpandedHeader extends StatelessWidget {
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
-                      fontWeight: FontWeight.w500),
+                      fontWeight: FontWeight.w600),
                 ),
                 Text("ครั้ง",
                     style: TextStyle(
                       color: Colors.grey[400],
-                      fontSize: 16,
+                      fontSize: 14,
                     ))
               ],
             ),
