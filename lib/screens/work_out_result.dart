@@ -1,10 +1,17 @@
 // ignore_for_file: prefer_const_constructors, unnecessary_new
 
 import 'dart:async';
-
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:runex/databases/databases.dart';
 import 'package:runex/models/models.dart';
@@ -12,6 +19,10 @@ import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/services/firestore_database/firestore_database.dart';
 import 'package:runex/utils/datetime_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:share_plus/share_plus.dart';
 
 class WorkOutResult extends StatefulWidget {
   final int runexId;
@@ -42,6 +53,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
   late StreamSubscription internetSubscription;
   late SharedPreferences prefs;
   late String providerId = '';
+  ScreenshotController screenshotController = ScreenshotController();
 
   intiPrefs() async {
     prefs = await SharedPreferences.getInstance();
@@ -250,6 +262,306 @@ class _WorkOutResultState extends State<WorkOutResult> {
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }
 
+  late Uint8List imageFromMap;
+  late XFile imageFromDevice;
+  late bool _isSelectedImageFromDevice = false;
+
+  _sharePopUp() async {
+    final uin8list = await _controller?.takeSnapshot();
+    final base64image = base64Encode(uin8list!);
+    setState(() {
+      imageFromMap = base64Decode(base64image);
+    });
+
+    showModalBottomSheet(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        context: context,
+        isScrollControlled: true,
+        builder: (BuildContext context) {
+          return FractionallySizedBox(
+              heightFactor: 0.85,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Stack(
+                      children: [
+                        Container(
+                          alignment: Alignment.topLeft,
+                          child: IconButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              icon: Icon(Icons.close_rounded)),
+                        ),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              "แชร์",
+                              style: TextStyle(
+                                  color: Colors.grey[800],
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                      flex: 4,
+                      child: RepaintBoundary(
+                        key: _globalkey,
+                        child: Screenshot(
+                          controller: screenshotController,
+                          child: Stack(children: [
+                            ShaderMask(
+                                shaderCallback: (Rect bounds) {
+                                  return LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.center,
+                                    colors: [
+                                      Colors.black38,
+                                      Colors.transparent
+                                    ],
+                                  ).createShader(bounds);
+                                },
+                                blendMode: BlendMode.colorBurn,
+                                child: SizedBox(
+                                    width: MediaQuery.of(context).size.width,
+                                    child: _isSelectedImageFromDevice
+                                        ? Image.file(File(imageFromDevice.path),
+                                            fit: BoxFit.cover)
+                                        : Image.memory(imageFromMap,
+                                            fit: BoxFit.fill))),
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text("LOGO"),
+                                        IconButton(
+                                            onPressed: () {
+                                              _pickImage();
+                                              Navigator.pop(context);
+                                            },
+                                            icon:
+                                                Icon(Icons.camera_alt_outlined))
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'ระยะทาง',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 22),
+                                            ),
+                                            Text(
+                                              _locations.isNotEmpty &&
+                                                      !widget.isSend
+                                                  ? _runex[0]
+                                                      .distanceKm
+                                                      .toString()
+                                                  : widget.isSend
+                                                      ? widget.runexFirestore[
+                                                              'distance_total_km']
+                                                          .toString()
+                                                      : "0.00(km)",
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold),
+                                            )
+                                          ],
+                                        ),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          // ignore: prefer_const_literals_to_create_immutables
+                                          children: [
+                                            Text(
+                                              'ระยะเวลา',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 22),
+                                            ),
+                                            Text(
+                                              _runex.isNotEmpty &&
+                                                      !widget.isSend
+                                                  ? _formatTime(
+                                                      ((_runex[0].timeHrs)! *
+                                                              3600)
+                                                          .round())
+                                                  : widget.isSend
+                                                      ? _formatTime(
+                                                          (widget.runexFirestore[
+                                                                      'time_total_hours'] *
+                                                                  3600)
+                                                              .round())
+                                                      : '00:00:00',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 28,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Wrap(children: [
+                                              Text(
+                                                _runex.isNotEmpty &&
+                                                        !widget.isSend
+                                                    ? _runex[0].startTime
+                                                    : widget.isSend
+                                                        ? DateTimeUtils.getFullDate(
+                                                            DateTime.parse(widget
+                                                                .runexFirestore[
+                                                                    'start_time']
+                                                                .toString()))
+                                                        : '00:00:00',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                            ]),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ]),
+                            ),
+                          ]),
+                        ),
+                      )),
+                  Flexible(
+                      flex: 2,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width,
+                        color: Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              Text(
+                                "แชร์",
+                                style: TextStyle(
+                                    color: Colors.grey[800],
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500),
+                              ),
+                              SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _shareToFacebook,
+                                child: Text(
+                                  'Facebook',
+                                  style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                    fixedSize: Size(300, 50),
+                                    primary: Colors.blue[900],
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(25.0)))),
+                              ),
+                              SizedBox(height: 24),
+                              ElevatedButton(
+                                onPressed: _saveImage,
+                                child: Text(
+                                  'บันทึกภาพลงอุปกรณ์',
+                                  style: TextStyle(
+                                      fontSize: 16.0,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                    fixedSize: Size(300, 50),
+                                    primary: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                        side: BorderSide(color: Colors.grey),
+                                        borderRadius: BorderRadius.all(
+                                            Radius.circular(25.0)))),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ))
+                ],
+              ));
+        });
+  }
+
+  Future<bool> _requestPermission() async {
+    if (await Permission.storage.isGranted) {
+      return true;
+    } else {
+      await Permission.storage.request();
+      if (await Permission.storage.isDenied) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+  }
+
+  final GlobalKey _globalkey = new GlobalKey();
+
+  void _saveImage() async {
+    try {
+      RenderRepaintBoundary boundary = _globalkey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      var pngBytes = byteData?.buffer.asUint8List();
+      String fileName = (DateTime.now().microsecondsSinceEpoch).toString();
+      await ImageGallerySaver.saveImage(Uint8List.fromList(pngBytes!),
+          quality: 100, name: fileName);
+    } catch (err) {}
+  }
+
+  _pickImage() async {
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (file != null) {
+      setState(() {
+        imageFromDevice = file;
+        _isSelectedImageFromDevice = true;
+      });
+      _sharePopUp();
+    }
+  }
+
+  _shareToFacebook() async {
+    try {
+      await screenshotController.capture().then((image) async {
+        final directory = await getApplicationDocumentsDirectory();
+        DateTime dateTime = DateTime.now();
+        Timestamp timestamp = Timestamp.fromDate(dateTime);
+        final file =
+            await File('${directory.path}/share_${timestamp.seconds}.png')
+                .create();
+        await file.writeAsBytes(image!);
+        await Share.shareFiles([file.path]);
+      });
+    } catch (err) {}
+  }
+
   Widget _body() {
     return Consumer<ConnectivityProvider>(builder: (context, model, child) {
       return model.isOnline
@@ -257,110 +569,105 @@ class _WorkOutResultState extends State<WorkOutResult> {
               children: [
                 Flexible(
                     flex: 3,
-                    child: Stack(
-                        // color: Colors.white,
-                        children: [
-                          ShaderMask(
-                            shaderCallback: (Rect bounds) {
-                              return LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.center,
-                                colors: [Colors.black38, Colors.transparent],
-                              ).createShader(bounds);
-                            },
-                            blendMode: BlendMode.colorBurn,
-                            child: GoogleMap(
-                              // mapType: MapType.terrain,
-                              initialCameraPosition: const CameraPosition(
-                                target: LatLng(15.8700, 100.9925),
-                                zoom: 7.0,
-                              ),
-                              polylines: Set<Polyline>.of(polylines.values),
-                              onMapCreated: (GoogleMapController controller) {
-                                _controller = controller;
-                              },
-                            ),
+                    child: Stack(children: [
+                      ShaderMask(
+                        shaderCallback: (Rect bounds) {
+                          return LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.center,
+                            colors: [Colors.black38, Colors.transparent],
+                          ).createShader(bounds);
+                        },
+                        blendMode: BlendMode.colorBurn,
+                        child: GoogleMap(
+                          initialCameraPosition: const CameraPosition(
+                            target: LatLng(15.8700, 100.9925),
+                            zoom: 7.0,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          polylines: Set<Polyline>.of(polylines.values),
+                          onMapCreated: (GoogleMapController controller) async {
+                            _controller = controller;
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              // ignore: prefer_const_literals_to_create_immutables
                               children: [
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  // ignore: prefer_const_literals_to_create_immutables
-                                  children: [
-                                    Text(
-                                      'ระยะทาง',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 22),
-                                    ),
-                                    Text(
-                                      _locations.isNotEmpty && !widget.isSend
-                                          ? _runex[0].distanceKm.toString()
-                                          : widget.isSend
-                                              ? widget.runexFirestore[
-                                                      'distance_total_km']
-                                                  .toString()
-                                              : "0.00(km)",
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  ],
+                                Text(
+                                  'ระยะทาง',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 22),
                                 ),
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  // ignore: prefer_const_literals_to_create_immutables
-                                  children: [
-                                    Text(
-                                      'ระยะเวลา',
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 22),
-                                    ),
-                                    Text(
-                                      _runex.isNotEmpty && !widget.isSend
-                                          ? _formatTime(
-                                              ((_runex[0].timeHrs)! * 3600)
-                                                  .round())
-                                          : widget.isSend
-                                              ? _formatTime((widget
-                                                              .runexFirestore[
-                                                          'time_total_hours'] *
-                                                      3600)
-                                                  .round())
-                                              : '00:00:00',
-                                      style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    Wrap(children: [
-                                      Text(
-                                        _runex.isNotEmpty && !widget.isSend
-                                            ? _runex[0].startTime
-                                            : widget.isSend
-                                                ? DateTimeUtils.getFullDate(
-                                                    DateTime.parse(widget
-                                                        .runexFirestore[
-                                                            'start_time']
-                                                        .toString()))
-                                                : '00:00:00',
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ]),
-                                  ],
-                                ),
+                                Text(
+                                  _locations.isNotEmpty && !widget.isSend
+                                      ? _runex[0].distanceKm.toString()
+                                      : widget.isSend
+                                          ? widget.runexFirestore[
+                                                  'distance_total_km']
+                                              .toString()
+                                          : "0.00(km)",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold),
+                                )
                               ],
                             ),
-                          ),
-                        ])),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              // ignore: prefer_const_literals_to_create_immutables
+                              children: [
+                                Text(
+                                  'ระยะเวลา',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 22),
+                                ),
+                                Text(
+                                  _runex.isNotEmpty && !widget.isSend
+                                      ? _formatTime(
+                                          ((_runex[0].timeHrs)! * 3600).round())
+                                      : widget.isSend
+                                          ? _formatTime((widget.runexFirestore[
+                                                      'time_total_hours'] *
+                                                  3600)
+                                              .round())
+                                          : '00:00:00',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                Wrap(children: [
+                                  Text(
+                                    _runex.isNotEmpty && !widget.isSend
+                                        ? _runex[0].startTime
+                                        : widget.isSend
+                                            ? DateTimeUtils.getFullDate(
+                                                DateTime.parse(widget
+                                                    .runexFirestore[
+                                                        'start_time']
+                                                    .toString()))
+                                            : '00:00:00',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ]),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ])),
                 Flexible(
                     flex: 2,
                     child: Container(
@@ -486,7 +793,8 @@ class _WorkOutResultState extends State<WorkOutResult> {
           centerTitle: true,
           title: Text('สรุปผล'),
           actions: [
-            IconButton(onPressed: () {}, icon: Icon(Icons.file_upload_outlined))
+            IconButton(
+                onPressed: _sharePopUp, icon: Icon(Icons.file_upload_outlined))
           ],
         ),
         body: _body());
