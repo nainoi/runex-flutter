@@ -30,4 +30,9 @@ class DateTimeUtils {
     var formatter = DateFormat('Hms');
     return formatter.format(dateTime);
   }
+
+  static String getFullDateInNumber(DateTime dateTime) {
+    var formatter = DateFormat('dd/MM/yyyy');
+    return formatter.format(dateTime);
+  }
 }

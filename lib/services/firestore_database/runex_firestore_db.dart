@@ -21,7 +21,6 @@ class RunexFirestoreDatabase {
       '_doc_id': runexDocument.id,
       'is_saved': runex.isSaved,
       'month_and_year': runex.monthAndYear
-
     }).then((value) {
       return FirestoreReturn(success: true, data: runexDocument.id);
     }).catchError((error) {
@@ -46,10 +45,59 @@ class RunexFirestoreDatabase {
     return FirebaseFirestore.instance
         .collection(COLLECTION_NAME)
         .where('provider_id', isEqualTo: providerId)
-        // .orderBy('_id')
         .get()
         .then((QuerySnapshot querySnapshot) {
       return FirestoreReturn(success: true, data: querySnapshot.docs.toList());
+    }).catchError((error) {
+      return FirestoreReturn(success: false, data: error);
+    });
+  }
+
+  Future<FirestoreReturn> readByMonthAndYear(String providerId) {
+    var runexCountMap = Map();
+    var distanceMap = Map();
+    var timeMap = Map();
+    var calMap = Map();
+
+    return FirebaseFirestore.instance
+        .collection(COLLECTION_NAME)
+        .where(
+          'provider_id',
+          isEqualTo: providerId,
+        )
+        .get()
+        .then((QuerySnapshot querySnapshot) {
+      querySnapshot.docs.map((e) {
+        if (!distanceMap.containsKey(e['month_and_year'])) {
+          distanceMap[e['month_and_year']] = 0.0;
+          distanceMap[e['month_and_year']] += e['distance_total_km'];
+
+          timeMap[e['month_and_year']] = 0.0;
+          timeMap[e['month_and_year']] += e['time_total_hours'];
+
+          runexCountMap[e['month_and_year']] = 1;
+
+          // calMap[e['month_and_year']] = 0.0;
+          // calMap[e['month_and_year']] += e['cal_total'];
+        } else {
+          distanceMap[e['month_and_year']] += e['distance_total_km'];
+          timeMap[e['month_and_year']] += e['time_total_hours'];
+          runexCountMap[e['month_and_year']] += 1;
+        }
+      }).toList();
+      final runexCountList = runexCountMap.keys.toList();
+      final runexCountValuesList = runexCountMap.values.toList();
+      final distanceList = distanceMap.values.toList();
+      final timeList = timeMap.values.toList();
+      List<MonthAndYear> monthAndYear = [];
+      for (var i = 0; i < runexCountList.length; i++) {
+        monthAndYear.add(MonthAndYear(
+            monthAndYear: runexCountList[i],
+            runexCount: runexCountValuesList[i],
+            distanceTotal: distanceList[i],
+            timeTotal: timeList[i]));
+      }
+      return FirestoreReturn(success: true, data: monthAndYear);
     }).catchError((error) {
       return FirestoreReturn(success: false, data: error);
     });

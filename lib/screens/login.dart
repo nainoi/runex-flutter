@@ -48,7 +48,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    //checkUserLoggedIn();
+    checkUserLoggedIn();
   }
 
   @override
@@ -135,7 +135,7 @@ class _LoginState extends State<Login> {
                                         ),
                                         const Text(
                                           "Login With Facebook",
-                                          style: TextStyle(fontSize: 20.0),
+                                          style: TextStyle(fontSize: 18.0),
                                         ),
                                       ],
                                     ),
@@ -179,7 +179,7 @@ class _LoginState extends State<Login> {
                                         ),
                                         const Text(
                                           "Login With Line",
-                                          style: TextStyle(fontSize: 20.0),
+                                          style: TextStyle(fontSize: 18.0),
                                         ),
                                       ],
                                     ),
@@ -223,7 +223,7 @@ class _LoginState extends State<Login> {
                                         ),
                                         const Text(
                                           "Login With Google",
-                                          style: TextStyle(fontSize: 20.0),
+                                          style: TextStyle(fontSize: 18.0),
                                         ),
                                       ],
                                     ),

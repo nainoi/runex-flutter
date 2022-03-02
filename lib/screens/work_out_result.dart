@@ -11,6 +11,7 @@ import 'package:runex/models/models.dart';
 import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/services/firestore_database/firestore_database.dart';
 import 'package:runex/utils/datetime_utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WorkOutResult extends StatefulWidget {
   final int runexId;
@@ -39,8 +40,17 @@ class _WorkOutResultState extends State<WorkOutResult> {
   ConnectivityResult result = ConnectivityResult.none;
   late StreamSubscription subscription;
   late StreamSubscription internetSubscription;
+  late SharedPreferences prefs;
+  late String providerId = '';
 
-  _getRunexAndLocation() async {
+  intiPrefs() async {
+    prefs = await SharedPreferences.getInstance();
+    setState(() {
+      providerId = prefs.getString("providerID") ?? '';
+    });
+  }
+
+  _getRunexAndLocationDb() async {
     final runex = await RunexDatabase.instance.readById(widget.runexId);
     final locations =
         await LocationDatabase.instance.readByRunexId(widget.runexId);
@@ -77,6 +87,45 @@ class _WorkOutResultState extends State<WorkOutResult> {
       setState(() {
         polylines[polylineId] = polyline;
       });
+    }
+  }
+
+  _getLocationFirestor() async {
+    LocationFirestoreDatabase locationFirestoreDatabase =
+        LocationFirestoreDatabase();
+    final locationFirestor =
+        await locationFirestoreDatabase.readByRunexDocId(providerId);
+    if (locationFirestor.success) {
+      final List locationList = locationFirestor.data;
+      if (locationList.isNotEmpty) {
+        _controller?.animateCamera(CameraUpdate.newCameraPosition(
+            CameraPosition(
+                target: LatLng(
+                    locationList[0]['latitude'], locationList[0]['longitude']),
+                bearing: 270.0,
+                tilt: 30.0,
+                zoom: 17.0)));
+
+        for (var i = 0; i < locationList.length; i++) {
+          setState(() {
+            points.add(_createLatLng(
+                locationList[i]['latitude'], locationList[i]['longitude']));
+          });
+          final String polylineIdVal = 'polyline_id_$i';
+          final PolylineId polylineId = PolylineId(polylineIdVal);
+
+          final Polyline polyline = Polyline(
+            polylineId: polylineId,
+            consumeTapEvents: true,
+            color: Colors.orange,
+            width: 10,
+            points: points,
+          );
+          setState(() {
+            polylines[polylineId] = polyline;
+          });
+        }
+      }
     }
   }
 
@@ -192,8 +241,11 @@ class _WorkOutResultState extends State<WorkOutResult> {
   @override
   void initState() {
     super.initState();
+    intiPrefs();
     if (!widget.isSend) {
-      _getRunexAndLocation();
+      _getRunexAndLocationDb();
+    } else {
+      _getLocationFirestor();
     }
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }

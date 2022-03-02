@@ -77,15 +77,19 @@ class RunexDatabase {
     return runexList;
   }
 
-  Future<List> readByMonthAndYear(String providerId) async {
+  Future<List<MonthAndYear>> readByMonthAndYear(String providerId) async {
     Database db = await instance.database;
     var runex = await db.query(TABLE_NAME,
-        columns: ['month_and_year'],
+        columns: [
+          'month_and_year, SUM(distance_total_km) as distance_total, COUNT(*) as runex_conunt, SUM(time_total_hours) as time_total'
+        ],
         where: 'provider_id = ?',
         whereArgs: [providerId],
         groupBy: 'month_and_year',
         orderBy: '_id');
-    List runexList = runex;
+    List<MonthAndYear> runexList = runex.isNotEmpty
+        ? runex.map((e) => MonthAndYear.fromJson(e)).toList()
+        : [];
     return runexList;
   }
 

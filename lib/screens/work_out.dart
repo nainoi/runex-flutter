@@ -31,6 +31,8 @@ class _WorkOutState extends State<WorkOut> {
   late int timer = 0;
   late Timer _timerContoller;
   late String timeStr = '00:00:00';
+  late String providerId = '';
+
 
   _formatTime(int seconds) {
     setState(() {
@@ -38,13 +40,14 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
-  late String notificationLayout = 'notification_layout';
-
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
-    _isStartedRun = prefs.getBool('_isStartedRun') ?? false;
-    _isPaused = prefs.getBool('_isPaused') ?? false;
-    _runexId = prefs.getInt('_runexId') ?? 0;
+    setState(() {
+      _isStartedRun = prefs.getBool('_isStartedRun') ?? false;
+      _isPaused = prefs.getBool('_isPaused') ?? false;
+      _runexId = prefs.getInt('_runexId') ?? 0;
+      providerId = prefs.getString("providerID") ?? '';
+    });
     final startTime = prefs.getInt("startTime") ?? 0;
     final currentTime = Timestamp.fromDate(DateTime.now());
     if (startTime > 0) {
@@ -88,22 +91,6 @@ class _WorkOutState extends State<WorkOut> {
     // 1.  Listen to events (See docs for all 12 available events).
     bg.BackgroundGeolocation.onLocation(_onLocation);
     bg.BackgroundGeolocation.onProviderChange(_onProviderChange);
-    bg.BackgroundGeolocation.onNotificationAction((buttonId) {
-      switch (buttonId) {
-        case 'pause':
-          setState(() {
-            _isPaused = true;
-            notificationLayout = "notification_pause_layout";
-          });
-          break;
-        case 'resume':
-          setState(() {
-            _isPaused = true;
-            notificationLayout = "notification_layout";
-          });
-          break;
-      }
-    });
 
     // 2.  Configure the plugin
     bg.BackgroundGeolocation.ready(bg.Config(
@@ -133,7 +120,7 @@ class _WorkOutState extends State<WorkOut> {
         bg.BackgroundGeolocation.setOdometer(0.0);
         final date = DateTime.now();
         final response = await RunexDatabase.instance.create(Runex(
-            providerId: 'ABCD1234',
+            providerId: providerId,
             monthAndYear: DateTimeUtils.getMonthAndYear(date),
             startTime: date.toString(),
             endTime: '',
@@ -189,7 +176,7 @@ class _WorkOutState extends State<WorkOut> {
       List<Runex> data = await RunexDatabase.instance.readById(_runexId);
       await RunexDatabase.instance.update(Runex(
           id: _runexId,
-          providerId: 'ABCD1234',
+          providerId: data[0].providerId,
           monthAndYear: data[0].monthAndYear,
           startTime: data[0].startTime,
           endTime: DateTime.now().toString(),
