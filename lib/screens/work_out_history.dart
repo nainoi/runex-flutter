@@ -94,7 +94,7 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
                                   )));
                     },
                     distance:
-                        runexFirestore[index]['distance_total_km'].toString(),
+                        runexFirestore[index]['distance_total_km'].toStringAsFixed(2),
                     startTime: runexFirestore[index]['start_time'],
                   );
                 }
@@ -133,7 +133,7 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
                                     isSend: false,
                                   )));
                     },
-                    distance: runexDb[index].distanceKm.toString(),
+                    distance: runexDb[index].distanceKm!.toStringAsFixed(2),
                     startTime: runexDb[index].startTime,
                   );
                 } else {
@@ -213,6 +213,7 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
             if (_isLoading)
               CircularProgressIndicator(
                 color: Colors.amber,
+                // valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
               )
             else
               ExpansionPanelList(
@@ -265,58 +266,60 @@ class ExpandedBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(40, 18, 24, 0),
       child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.run_circle_outlined,
-                  size: 45,
-                  color: Colors.amber[400],
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            DateTimeUtils.getFullDateInNumber(
-                                DateTime.parse(startTime)),
-                            style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500)),
-                        SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              DateTimeUtils.getFullTime(
-                                  DateTime.parse(startTime)),
-                              style:
-                                  TextStyle(color: Colors.grey, fontSize: 14),
-                            ),
-                            // SizedBox(width: 50),
-                            Text('$distance km',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        )
-                      ],
-                    ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.run_circle_outlined,
+                    size: 45,
+                    color: Colors.amber[400],
                   ),
-                )
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 20, top: 9),
-              child: Divider(color: Colors.grey),
-            )
-          ],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                              DateTimeUtils.getFullDateInNumber(
+                                  DateTime.parse(startTime)),
+                              style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500)),
+                          SizedBox(height: 5),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                DateTimeUtils.getFullTime(
+                                    DateTime.parse(startTime)),
+                                style:
+                                    TextStyle(color: Colors.grey, fontSize: 14),
+                              ),
+                              // SizedBox(width: 50),
+                              Text('${distance} km',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600)),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(left: 20, top: 9),
+                child: Divider(color: Colors.grey),
+              )
+            ],
+          ),
         ),
       ),
     );

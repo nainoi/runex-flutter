@@ -346,57 +346,66 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text("LOGO"),
-                                        IconButton(
-                                            onPressed: () {
-                                              _pickImage();
-                                              Navigator.pop(context);
-                                            },
-                                            icon:
-                                                Icon(Icons.camera_alt_outlined))
+                                        GestureDetector(
+                                          onTap: () {
+                                            _pickImage();
+                                            Navigator.pop(context);
+                                          },
+                                          child: Container(
+                                            width: 35,
+                                            height: 35,
+                                            decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(50)),
+                                                border: Border.all(
+                                                    color: Colors.white),
+                                                color: Colors.grey[300]),
+                                            child:
+                                                Icon(Icons.camera_alt_outlined, size: 20, color: Colors.black87,),
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          // ignore: prefer_const_literals_to_create_immutables
                                           children: [
                                             Text(
                                               'ระยะทาง',
                                               style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 22),
+                                                  fontSize: 18),
                                             ),
-                                            Text(
-                                              _locations.isNotEmpty &&
-                                                      !widget.isSend
-                                                  ? _runex[0]
-                                                      .distanceKm
-                                                      .toString()
-                                                  : widget.isSend
-                                                      ? widget.runexFirestore[
-                                                              'distance_total_km']
-                                                          .toString()
-                                                      : "0.00(km)",
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 28,
-                                                  fontWeight: FontWeight.bold),
-                                            )
-                                          ],
-                                        ),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.end,
-                                          // ignore: prefer_const_literals_to_create_immutables
-                                          children: [
                                             Text(
                                               'ระยะเวลา',
                                               style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 22),
+                                                  fontSize: 18),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 4),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _locations.isNotEmpty &&
+                                                      !widget.isSend
+                                                  ? "${_runex[0].distanceKm!.toStringAsFixed(2)}(km)"
+                                                  : widget.isSend
+                                                      ? "${widget.runexFirestore['distance_total_km'].toStringAsFixed(2)}(km)"
+                                                      : "0.00(km)",
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold),
                                             ),
                                             Text(
                                               _runex.isNotEmpty &&
@@ -414,32 +423,32 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                                       : '00:00:00',
                                               style: TextStyle(
                                                   color: Colors.white,
-                                                  fontSize: 28,
+                                                  fontSize: 24,
                                                   fontWeight: FontWeight.bold),
                                             ),
-                                            Wrap(children: [
-                                              Text(
-                                                _runex.isNotEmpty &&
-                                                        !widget.isSend
-                                                    ? _runex[0].startTime
-                                                    : widget.isSend
-                                                        ? DateTimeUtils.getFullDate(
-                                                            DateTime.parse(widget
-                                                                .runexFirestore[
-                                                                    'start_time']
-                                                                .toString()))
-                                                        : '00:00:00',
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            ]),
                                           ],
                                         ),
+                                        Text(
+                                          _runex.isNotEmpty && !widget.isSend
+                                              ? DateTimeUtils
+                                                  .getFullDateAndFullTime(
+                                                      DateTime.parse(
+                                                          _runex[0].startTime))
+                                              : widget.isSend
+                                                  ? DateTimeUtils
+                                                      .getFullDateAndFullTime(
+                                                          DateTime.parse(widget
+                                                              .runexFirestore[
+                                                                  'start_time']
+                                                              .toString()))
+                                                  : '00:00:00',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                          ),
+                                        ),
                                       ],
-                                    ),
+                                    )
                                   ]),
                             ),
                           ]),
@@ -592,80 +601,89 @@ class _WorkOutResultState extends State<WorkOutResult> {
                       ),
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              // ignore: prefer_const_literals_to_create_immutables
-                              children: [
-                                Text(
-                                  'ระยะทาง',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 22),
-                                ),
-                                Text(
-                                  _locations.isNotEmpty && !widget.isSend
-                                      ? _runex[0].distanceKm.toString()
-                                      : widget.isSend
-                                          ? widget.runexFirestore[
-                                                  'distance_total_km']
-                                              .toString()
-                                          : "0.00(km)",
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold),
-                                )
-                              ],
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              // ignore: prefer_const_literals_to_create_immutables
-                              children: [
-                                Text(
-                                  'ระยะเวลา',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 22),
-                                ),
-                                Text(
-                                  _runex.isNotEmpty && !widget.isSend
-                                      ? _formatTime(
-                                          ((_runex[0].timeHrs)! * 3600).round())
-                                      : widget.isSend
-                                          ? _formatTime((widget.runexFirestore[
-                                                      'time_total_hours'] *
-                                                  3600)
-                                              .round())
-                                          : '00:00:00',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Wrap(children: [
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                alignment: Alignment.topLeft,
+                                child: Text("LOGO"),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    // ignore: prefer_const_literals_to_create_immutables
+                                    children: [
+                                      Text(
+                                        'ระยะทาง',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 18),
+                                      ),
+                                      Text(
+                                        'ระยะเวลา',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        _locations.isNotEmpty && !widget.isSend
+                                            ? "${_runex[0].distanceKm!.toStringAsFixed(2)}(km)"
+                                            : widget.isSend
+                                                ? "${widget.runexFirestore['distance_total_km'].toStringAsFixed(2)}(km)"
+                                                : "0.00(km)",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        _runex.isNotEmpty && !widget.isSend
+                                            ? _formatTime(
+                                                ((_runex[0].timeHrs)! * 3600)
+                                                    .round())
+                                            : widget.isSend
+                                                ? _formatTime((widget
+                                                                .runexFirestore[
+                                                            'time_total_hours'] *
+                                                        3600)
+                                                    .round())
+                                                : '00:00:00',
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
                                   Text(
                                     _runex.isNotEmpty && !widget.isSend
-                                        ? _runex[0].startTime
+                                        ? DateTimeUtils.getFullDateAndFullTime(
+                                            DateTime.parse(_runex[0].startTime))
                                         : widget.isSend
-                                            ? DateTimeUtils.getFullDate(
-                                                DateTime.parse(widget
-                                                    .runexFirestore[
-                                                        'start_time']
-                                                    .toString()))
+                                            ? DateTimeUtils
+                                                .getFullDateAndFullTime(
+                                                    DateTime.parse(widget
+                                                        .runexFirestore[
+                                                            'start_time']
+                                                        .toString()))
                                             : '00:00:00',
                                     style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold),
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                    ),
                                   ),
-                                ]),
-                              ],
-                            ),
-                          ],
-                        ),
+                                ],
+                              )
+                            ]),
                       ),
                     ])),
                 Flexible(
@@ -680,11 +698,11 @@ class _WorkOutResultState extends State<WorkOutResult> {
                             _RunDetail(
                               title: 'ระยะทาง(km)',
                               subTitle: _locations.isNotEmpty && !widget.isSend
-                                  ? _runex[0].distanceKm.toString()
+                                  ? _runex[0].distanceKm!.toStringAsFixed(2)
                                   : widget.isSend
                                       ? widget
                                           .runexFirestore['distance_total_km']
-                                          .toString()
+                                          .toStringAsFixed(2)
                                       : '0.00',
                             ),
                             _RunDetail(

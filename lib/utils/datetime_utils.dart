@@ -21,6 +21,12 @@ class DateTimeUtils {
     return formatter.format(dateTime);
   }
 
+  static String getFullDateAndFullTime(DateTime dateTime) {
+    var formatter = DateFormat('dd MMM, yyyy');
+    var timeFormatter = DateFormat('Hm');
+    return formatter.format(dateTime) + " ${timeFormatter.format(dateTime)}";
+  }
+
   static String getDayOfWeek(DateTime dateTime) {
     var formatter = DateFormat('EEEE');
     return formatter.format(dateTime);
