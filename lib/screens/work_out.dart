@@ -30,14 +30,8 @@ class _WorkOutState extends State<WorkOut> {
   late bool _isPaused = false;
   late int timer = 0;
   late Timer _timerContoller;
-  late String timeStr = '00:00:00';
   late String providerId = '';
 
-  _formatTime(int seconds) {
-    setState(() {
-      timeStr = '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
-    });
-  }
 
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
@@ -112,8 +106,6 @@ class _WorkOutState extends State<WorkOut> {
   // Fetch location in background functions
   _startRun() async {
     try {
-      // createRunnigNotification(timeStr, _odometer);
-      _onClickGetCurrentPosition();
       final startTime = Timestamp.fromDate(DateTime.now());
       bg.BackgroundGeolocation.start().then((value) async {
         bg.BackgroundGeolocation.setOdometer(0.0);
@@ -240,7 +232,6 @@ class _WorkOutState extends State<WorkOut> {
       setState(() {
         _timerContoller = Timer.periodic(oneSec, (Timer t) {
           timer += 1;
-          _formatTime(timer);
         });
       });
     }
@@ -295,6 +286,21 @@ class _WorkOutState extends State<WorkOut> {
   // Google map and Polyline functions
   void _onMapCreated(GoogleMapController controller) {
     this.controller = controller;
+    bg.BackgroundGeolocation.getCurrentPosition(
+            persist: false, // <-- do not persist this location
+            desiredAccuracy: 0, // <-- desire best possible accuracy
+            timeout: 30000, // <-- wait 30s before giving up.
+            samples: 3 // <-- sample 3 location before selecting best.
+            )
+        .then((bg.Location location) {
+      dynamic data = convert.jsonDecode(encoder.convert(location.toMap()));
+      final _target =
+          LatLng(data['coords']['latitude'], data['coords']['longitude']);
+      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
+    }).catchError((error) {
+      print('[getCurrentPosition] ERROR: $error');
+    });
   }
 
   @override
@@ -425,8 +431,10 @@ class _WorkOutState extends State<WorkOut> {
                             children: [
                               RunDetail(
                                   title: 'ระยะเวลา',
-                                  subTitle:
-                                      timer != 0.0 ? timeStr : '00:00:00'),
+                                  subTitle: timer != 0.0
+                                      ? DateTimeUtils.getFullTimeFromSecond(
+                                          timer)
+                                      : '00:00:00'),
                               RunDetail(
                                   title: 'Pace(min/km)', subTitle: '00:00'),
                               RunDetail(title: 'แคลอรี่(cal)', subTitle: '0'),

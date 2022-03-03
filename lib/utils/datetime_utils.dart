@@ -41,4 +41,8 @@ class DateTimeUtils {
     var formatter = DateFormat('dd/MM/yyyy');
     return formatter.format(dateTime);
   }
+
+  static String getFullTimeFromSecond(int seconds) {
+    return '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
+  }
 }
