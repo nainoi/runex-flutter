@@ -17,7 +17,7 @@ import 'package:runex/databases/databases.dart';
 import 'package:runex/models/models.dart';
 import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/services/firestore_database/firestore_database.dart';
-import 'package:runex/utils/datetime_utils.dart';
+import 'package:runex/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -336,7 +336,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                         : Image.memory(imageFromMap,
                                             fit: BoxFit.fill))),
                             Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                               child: Column(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -345,7 +345,8 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text("LOGO"),
+                                        Image.asset(Assets.eventaLogoDesktop,
+                                            height: 100, width: 100),
                                         GestureDetector(
                                           onTap: () {
                                             _pickImage();
@@ -360,8 +361,11 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                                 border: Border.all(
                                                     color: Colors.white),
                                                 color: Colors.grey[300]),
-                                            child:
-                                                Icon(Icons.camera_alt_outlined, size: 20, color: Colors.black87,),
+                                            child: Icon(
+                                              Icons.camera_alt_outlined,
+                                              size: 20,
+                                              color: Colors.black87,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -600,13 +604,14 @@ class _WorkOutResultState extends State<WorkOutResult> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
                                 alignment: Alignment.topLeft,
-                                child: Text("LOGO"),
+                                child: Image.asset(Assets.eventaLogoDesktop,
+                                    height: 100, width: 100),
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -691,7 +696,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                     child: Container(
                       color: Colors.grey[800],
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                         child: Column(
                           // ignore: prefer_const_literals_to_create_immutables
                           children: [
