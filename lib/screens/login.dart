@@ -37,7 +37,6 @@ class _LoginState extends State<Login> {
   Future<void> checkUserLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final String? loggedIn = prefs.getString("token");
-    print('loggedin' + loggedIn.toString());
     if (loggedIn != null) {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const Home()));
@@ -47,7 +46,7 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    //checkUserLoggedIn();
+    checkUserLoggedIn();
   }
 
   @override
