@@ -33,7 +33,6 @@ class _WorkOutState extends State<WorkOut> {
   late String timeStr = '00:00:00';
   late String providerId = '';
 
-
   _formatTime(int seconds) {
     setState(() {
       timeStr = '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
@@ -394,7 +393,7 @@ class _WorkOutState extends State<WorkOut> {
               child: Container(
                 color: Colors.grey[800],
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(30, 16, 30, 24),
+                  padding: const EdgeInsets.fromLTRB(30, 16, 30, 16),
                   child: Center(
                     child: Column(
                       children: [
@@ -419,7 +418,7 @@ class _WorkOutState extends State<WorkOut> {
                           ],
                         ),
                         Padding(
-                          padding: const EdgeInsets.only(top: 24, bottom: 24),
+                          padding: const EdgeInsets.only(top: 20, bottom: 20),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             // ignore: prefer_const_literals_to_create_immutables
@@ -532,7 +531,7 @@ class RunButton extends StatelessWidget {
           onTap: onTap,
           child: Icon(
             icon,
-            size: 80,
+            size: 70,
             color: iconColor,
           ),
         ),

@@ -283,7 +283,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(4),
                     child: Stack(
                       children: [
                         Container(
@@ -461,11 +461,11 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500),
                               ),
-                              SizedBox(height: 24),
+                              SizedBox(height: 10),
                               ElevatedButton(
                                 onPressed: _shareToFacebook,
                                 child: Text(
-                                  'Facebook',
+                                  'แชร์ภาพ',
                                   style: TextStyle(
                                       fontSize: 16.0,
                                       color: Colors.white,
@@ -478,7 +478,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                         borderRadius: BorderRadius.all(
                                             Radius.circular(25.0)))),
                               ),
-                              SizedBox(height: 24),
+                              SizedBox(height: 10),
                               ElevatedButton(
                                 onPressed: _saveImage,
                                 child: Text(
@@ -673,7 +673,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                     child: Container(
                       color: Colors.grey[800],
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                         child: Column(
                           // ignore: prefer_const_literals_to_create_immutables
                           children: [
@@ -708,13 +708,13 @@ class _WorkOutResultState extends State<WorkOutResult> {
                               subTitle: '0.00',
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(top: 6, bottom: 6),
+                              padding: const EdgeInsets.only(top: 3, bottom: 3),
                               child: Divider(
                                 color: Colors.grey,
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.only(top: 6, bottom: 6),
+                              padding: const EdgeInsets.only(top: 0, bottom: 6),
                               child: ElevatedButton(
                                 onPressed: () {
                                   if (!widget.isSend) {
