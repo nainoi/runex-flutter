@@ -55,23 +55,23 @@ class LocationDatabase {
     ''');
   }
 
-  Future<int> create(Location location) async {
+  Future<int> create(LocationModel location) async {
     Database db = await instance.database;
     return await db.insert(TABLE_NAME, location.toJson());
   }
 
-  Future<List<Location>> read() async {
+  Future<List<LocationModel>> read() async {
     Database db = await instance.database;
     var locations = await db.query(TABLE_NAME, columns: ['*'], orderBy: '_id');
 
-    List<Location> locationList = locations.isNotEmpty
-        ? locations.map((e) => Location.fromJson(e)).toList()
+    List<LocationModel> locationList = locations.isNotEmpty
+        ? locations.map((e) => LocationModel.fromJson(e)).toList()
         : [];
 
     return locationList;
   }
 
-  Future<List<Location>> readByRunexId(int runexId) async {
+  Future<List<LocationModel>> readByRunexId(int runexId) async {
     Database db = await instance.database;
     var locations = await db.query(TABLE_NAME,
         columns: ['*'],
@@ -79,14 +79,14 @@ class LocationDatabase {
         whereArgs: [runexId],
         orderBy: '_id');
 
-    List<Location> locationList = locations.isNotEmpty
-        ? locations.map((e) => Location.fromJson(e)).toList()
+    List<LocationModel> locationList = locations.isNotEmpty
+        ? locations.map((e) => LocationModel.fromJson(e)).toList()
         : [];
 
     return locationList;
   }
 
-  Future<int> update(Location location) async {
+  Future<int> update(LocationModel location) async {
     Database db = await instance.database;
     return await db.update(TABLE_NAME, location.toJson(),
         where: '_id = ?', whereArgs: [location.id]);

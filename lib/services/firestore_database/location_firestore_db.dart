@@ -11,7 +11,7 @@ class LocationFirestoreDatabase {
   CollectionReference locationCollection =
       FirebaseFirestore.instance.collection(COLLECTION_NAME);
 
-  Future<FirestoreReturn> create(Location location) {
+  Future<FirestoreReturn> create(LocationModel location) {
     return locationDocument.set({
       '_id': location.id,
       'runex_doc_id': location.docId,
@@ -75,7 +75,7 @@ class LocationFirestoreDatabase {
     });
   }
 
-  Future<FirestoreReturn> update(Location location) {
+  Future<FirestoreReturn> update(LocationModel location) {
     return locationCollection.doc(location.docId).update({
       'odometer': location.odometer,
       'altitude': location.altitude,

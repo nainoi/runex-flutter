@@ -40,7 +40,7 @@ class WorkOutResult extends StatefulWidget {
 }
 
 class _WorkOutResultState extends State<WorkOutResult> {
-  late List<Location> _locations = [];
+  late List<LocationModel> _locations = [];
   late List<Runex> _runex = [];
   GoogleMapController? _controller;
   Map<PolylineId, Polyline> polylines = <PolylineId, Polyline>{};
@@ -166,7 +166,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
               LocationFirestoreDatabase locationFirestoreDatabase =
                   new LocationFirestoreDatabase();
               FirestoreReturn locResponse =
-                  await locationFirestoreDatabase.create(Location(
+                  await locationFirestoreDatabase.create(LocationModel(
                       id: _locations[i].id,
                       runexId: 0,
                       odometer: _locations[i].odometer,
@@ -194,7 +194,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
             }
           }
           if (isConnected) {
-            List<Location> locations =
+            List<LocationModel> locations =
                 await LocationDatabase.instance.readByRunexId(widget.runexId);
             if (locations.isEmpty) {
               FirestoreReturn updateRunexRes =

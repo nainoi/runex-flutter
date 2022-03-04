@@ -1,4 +1,4 @@
-class Location {
+class LocationModel {
   final int? id;
   final int runexId;
   final String? docId;
@@ -27,7 +27,7 @@ class Location {
   final bool isCharging;
   final double level;
 
-  Location(
+  LocationModel(
       {this.id,
       required this.runexId,
       this.docId,
@@ -49,7 +49,7 @@ class Location {
       required this.level});
 
   // ignore: unnecessary_new
-  factory Location.fromJson(Map<String, dynamic> json) => new Location(
+  factory LocationModel.fromJson(Map<String, dynamic> json) => new LocationModel(
       id: json['_id'],
       runexId: json['runex_id'],
       docId: json['runex_doc_id'],
