@@ -12,6 +12,7 @@ import 'package:flutter_background_geolocation/flutter_background_geolocation.da
 import 'package:runex/databases/databases.dart';
 import 'dart:convert' as convert;
 import 'package:runex/models/models.dart';
+import 'package:location/location.dart';
 
 convert.JsonEncoder encoder = new convert.JsonEncoder.withIndent("     ");
 
@@ -32,6 +33,7 @@ class _WorkOutState extends State<WorkOut> {
   late Timer _timerContoller;
   late String timeStr = '00:00:00';
   late String providerId = '';
+  late Location location = new Location();
 
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
@@ -65,7 +67,7 @@ class _WorkOutState extends State<WorkOut> {
   PolylineId? selectedPolyline;
   final List<LatLng> points = <LatLng>[];
 
-  _timer() {
+  _timer() async {
     Timer(const Duration(milliseconds: 500), () {
       setState(() {
         _canDisplayMap = true;
@@ -78,6 +80,7 @@ class _WorkOutState extends State<WorkOut> {
     super.initState();
     initPrefs();
     _timer();
+    // _moveCameraMap();
     _content = '';
     _odometer = 0.00.toStringAsFixed(2);
 
@@ -106,6 +109,7 @@ class _WorkOutState extends State<WorkOut> {
   // Fetch location in background functions
   _startRun() async {
     try {
+      _moveCameraMap();
       final startTime = Timestamp.fromDate(DateTime.now());
       bg.BackgroundGeolocation.start().then((value) async {
         bg.BackgroundGeolocation.setOdometer(0.0);
@@ -256,7 +260,7 @@ class _WorkOutState extends State<WorkOut> {
     if (_runexId > 0 && _isStartedRun && !_isPaused && data['is_moving']) {
       try {
         final id = await LocationDatabase.instance.create(
-          Location(
+          LocationModel(
               runexId: _runexId,
               odometer: 0.0,
               altitude: data['coords']['altitude'],
@@ -290,23 +294,22 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
+  _moveCameraMap() async {
+    location.onLocationChanged.listen((event) {
+      final _target = LatLng(event.latitude!, event.longitude!);
+      controller!.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+          target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
+    });
+  }
+
   // Google map and Polyline functions
   void _onMapCreated(GoogleMapController controller) {
     this.controller = controller;
-    bg.BackgroundGeolocation.getCurrentPosition(
-            persist: false, // <-- do not persist this location
-            desiredAccuracy: 0, // <-- desire best possible accuracy
-            timeout: 30000, // <-- wait 30s before giving up.
-            samples: 3 // <-- sample 3 location before selecting best.
-            )
-        .then((bg.Location location) {
-      dynamic data = convert.jsonDecode(encoder.convert(location.toMap()));
-      final _target =
-          LatLng(data['coords']['latitude'], data['coords']['longitude']);
-      controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-          target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
-    }).catchError((error) {
-      print('[getCurrentPosition] ERROR: $error');
+    location.onLocationChanged.listen((event) {
+      final _target = LatLng(event.latitude!, event.longitude!);
+      this.controller!.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(
+              target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
     });
   }
 
@@ -323,7 +326,7 @@ class _WorkOutState extends State<WorkOut> {
 
   void _refreshPolyLines() async {
     _onClickGetCurrentPosition();
-    List<Location> location =
+    List<LocationModel> location =
         await LocationDatabase.instance.readByRunexId(_runexId);
     for (var i = 0; i < location.length; i++) {
       setState(() {
@@ -398,6 +401,7 @@ class _WorkOutState extends State<WorkOut> {
                           ),
                           polylines: Set<Polyline>.of(polylines.values),
                           onMapCreated: _onMapCreated,
+                          myLocationEnabled: true,
                         )
                       : null,
                 )),
