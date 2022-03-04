@@ -30,8 +30,8 @@ class _WorkOutState extends State<WorkOut> {
   late bool _isPaused = false;
   late int timer = 0;
   late Timer _timerContoller;
+  late String timeStr = '00:00:00';
   late String providerId = '';
-
 
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
@@ -226,12 +226,19 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
+  _formatTime(int seconds) {
+    setState(() {
+      timeStr = '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
+    });
+  }
+
   void _startTime() {
     const oneSec = Duration(seconds: 1);
     if (mounted) {
       setState(() {
         _timerContoller = Timer.periodic(oneSec, (Timer t) {
           timer += 1;
+          _formatTime(timer);
         });
       });
     }
@@ -431,10 +438,7 @@ class _WorkOutState extends State<WorkOut> {
                             children: [
                               RunDetail(
                                   title: 'ระยะเวลา',
-                                  subTitle: timer != 0.0
-                                      ? DateTimeUtils.getFullTimeFromSecond(
-                                          timer)
-                                      : '00:00:00'),
+                                  subTitle: timer != 0 ? timeStr : '00:00:00'),
                               RunDetail(
                                   title: 'Pace(min/km)', subTitle: '00:00'),
                               RunDetail(title: 'แคลอรี่(cal)', subTitle: '0'),
