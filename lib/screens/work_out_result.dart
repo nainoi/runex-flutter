@@ -211,18 +211,20 @@ class _WorkOutResultState extends State<WorkOutResult> {
               }
             }
             runningProgressDialog.hideDialog();
-            successProgressDialog = new ShowAlertDialog(
-                context: context,
-                title: "ส่งผลสำเร็จ",
-                content: "",
-                onPress: () {
-                  successProgressDialog.hideDialog();
-                  setState(() {
-                    _isLoading = false;
-                  });
-                  Navigator.pop(context);
-                },
-                actionText: "ตกลง");
+            CustomDialog.customDialog1Actions(
+                context,
+                "ส่งผลสำเร็จ",
+                "การส่งผลการวิ่งเสร็จสมบูรณ์",
+                "ตกลง",
+                Colors.white,
+                Colors.amber,
+                Colors.transparent, () {
+              setState(() {
+                _isLoading = false;
+              });
+              Navigator.pop(context);
+              Navigator.pop(context);
+            });
             successProgressDialog.successDialog();
           } else {
             runningProgressDialog.hideDialog();
@@ -741,27 +743,25 @@ class _WorkOutResultState extends State<WorkOutResult> {
                               child: ElevatedButton(
                                 onPressed: () {
                                   if (!widget.isSend) {
-                                    showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) =>
-                                            AlertDialog(
-                                              title:
-                                                  const Text("ยืนยันการส่งผล"),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: const Text('ยกเลิก'),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () async {
-                                                    Navigator.pop(context);
-                                                    _onProgress();
-                                                  },
-                                                  child: const Text('ยืนยัน'),
-                                                ),
-                                              ],
-                                            ));
+                                    CustomDialog.customDialog2Actions(
+                                        context,
+                                        "ยืนยันการส่งผล",
+                                        "คุณยืนยันที่จะส่งผลการวิ่ง?",
+                                        "ยืนยัน",
+                                        Colors.white,
+                                        Colors.amber,
+                                        Colors.transparent,
+                                        () {
+                                          Navigator.pop(context);
+                                          _onProgress();
+                                        },
+                                        "ยกเลิก",
+                                        Colors.grey,
+                                        Colors.white,
+                                        Colors.grey,
+                                        () {
+                                          Navigator.pop(context);
+                                        });
                                   }
                                 },
                                 child: Text(

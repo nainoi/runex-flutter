@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:runex/screens/screens.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
@@ -473,33 +474,25 @@ class _WorkOutState extends State<WorkOut> {
                                     children: [
                                       RunButton(
                                         onTap: () {
-                                          showDialog(
-                                              context: context,
-                                              builder: (BuildContext context) =>
-                                                  AlertDialog(
-                                                    title: const Text(
-                                                        "สิ้นสุดการวิ่ง"),
-                                                    content: const Text(
-                                                        "คุณยืนยันที่จะสิ้นสุดการวิ่ง?"),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child: const Text(
-                                                            'ยกเลิก'),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () async {
-                                                          Navigator.pop(
-                                                              context);
-                                                          _stopRun();
-                                                        },
-                                                        child: const Text(
-                                                            'ยืนยัน'),
-                                                      ),
-                                                    ],
-                                                  ));
+                                          CustomDialog.customDialog2Actions(
+                                              context,
+                                              "สิ้นสุดการวิ่ง",
+                                              "คุณยืนยันที่จะสิ้นสุดการวิ่ง?",
+                                              "ยืนยัน",
+                                              Colors.white,
+                                              Colors.amber,
+                                              Colors.transparent,
+                                              () {
+                                                Navigator.pop(context);
+                                                _stopRun();
+                                              },
+                                              "ยกเลิก",
+                                              Colors.grey,
+                                              Colors.white,
+                                              Colors.grey,
+                                              () {
+                                                Navigator.pop(context);
+                                              });
                                         },
                                         title: 'จบการจับเวลา',
                                         icon: Icons.stop_circle_outlined,
