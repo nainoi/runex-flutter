@@ -20,7 +20,6 @@ import 'package:runex/services/firestore_database/firestore_database.dart';
 import 'package:runex/utils/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -211,6 +210,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
               }
             }
             runningProgressDialog.hideDialog();
+
             CustomDialog.customDialog1Actions(
                 context,
                 "ส่งผลสำเร็จ",
@@ -225,7 +225,6 @@ class _WorkOutResultState extends State<WorkOutResult> {
               Navigator.pop(context);
               Navigator.pop(context);
             });
-            successProgressDialog.successDialog();
           } else {
             runningProgressDialog.hideDialog();
           }
@@ -234,20 +233,16 @@ class _WorkOutResultState extends State<WorkOutResult> {
     } catch (e) {}
   }
 
-  late ShowAlertDialog runningProgressDialog;
-  late ShowAlertDialog successProgressDialog;
-  late ShowAlertDialog internetAlert;
+  late ProgressDialog runningProgressDialog;
 
   void _onProgress() async {
     final isConnected = context.read<ConnectivityProvider>().isOnline;
     if (isConnected) {
-      runningProgressDialog = new ShowAlertDialog(
+      runningProgressDialog = new ProgressDialog(
           context: context,
-          title: "กรุณารอสักครู่...",
-          content: "กำลังส่งผลการวิ่ง",
-          actionText: "",
-          onPress: () {});
-      runningProgressDialog.progressAlert();
+          title: "กำลังส่งผลการวิ่ง",
+          content: "กรุณารอสักครู่...");
+      runningProgressDialog.customProgressDialog();
       await _onSubmit();
     } else {}
   }
@@ -518,19 +513,6 @@ class _WorkOutResultState extends State<WorkOutResult> {
                 ],
               ));
         });
-  }
-
-  Future<bool> _requestPermission() async {
-    if (await Permission.storage.isGranted) {
-      return true;
-    } else {
-      await Permission.storage.request();
-      if (await Permission.storage.isDenied) {
-        return false;
-      } else {
-        return true;
-      }
-    }
   }
 
   final GlobalKey _globalkey = new GlobalKey();

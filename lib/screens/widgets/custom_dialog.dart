@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter/material.dart';
 
 class CustomDialog {
@@ -88,42 +90,87 @@ class CustomDialog {
             ),
             elevation: 0,
             backgroundColor: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  Text(content,
+            child: WillPopScope(
+              onWillPop: () => Future.value(false),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
                       style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500)),
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      top: 16,
+                          fontSize: 18,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        DialogButton(
-                          title: okTitle,
-                          titleColor: okTitleColor,
-                          buttonColor: okButtonColor,
-                          borderSideColor: okBorderSoidColor,
-                          onTap: okOnTap,
-                        )
-                      ],
+                    SizedBox(height: 8),
+                    Text(content,
+                        style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500)),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: 16,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          DialogButton(
+                            title: okTitle,
+                            titleColor: okTitleColor,
+                            buttonColor: okButtonColor,
+                            borderSideColor: okBorderSoidColor,
+                            onTap: okOnTap,
+                          )
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            )));
+  }
+
+  static customProgressDialog(
+      BuildContext context,
+      String title,
+      String content) {
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            elevation: 0,
+            backgroundColor: Colors.white,
+            child: WillPopScope(
+              onWillPop: () => Future.value(false),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Colors.amber,
                     ),
-                  )
-                ],
+                    SizedBox(height: 12),
+                    Text(
+                      title,
+                      style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    Text(content,
+                        style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500)),
+                  ],
+                ),
               ),
             )));
   }

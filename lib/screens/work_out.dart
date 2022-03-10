@@ -35,6 +35,7 @@ class _WorkOutState extends State<WorkOut> {
   late String timeStr = '00:00:00';
   late String providerId = '';
   late Location location = new Location();
+  late ProgressDialog runningProgressDialog;
 
   initPrefs() async {
     prefs = await SharedPreferences.getInstance();
@@ -46,12 +47,22 @@ class _WorkOutState extends State<WorkOut> {
     });
     final startTime = prefs.getInt("startTime") ?? 0;
     final currentTime = Timestamp.fromDate(DateTime.now());
+    final pausedTime = prefs.getInt('pausedTime');
     if (startTime > 0) {
-      final diffTime = currentTime.seconds - startTime;
+      final diffTime =
+          !_isPaused ? currentTime.seconds - startTime : pausedTime;
       setState(() {
-        timer = diffTime;
+        timer = diffTime!;
+        if (_isPaused) {
+          Timer(const Duration(milliseconds: 500), () {
+            timeStr = _formatTime(pausedTime!);
+          });
+        }
       });
-      _startTime();
+
+      if (!_isPaused) {
+        _startTime();
+      }
     }
     if (_isStartedRun) {
       _refreshPolyLines();
@@ -141,6 +152,7 @@ class _WorkOutState extends State<WorkOut> {
   _pauseRun() {
     try {
       prefs.setBool('_isPaused', true);
+      prefs.setInt('pausedTime', timer);
       bg.BackgroundGeolocation.stop();
       setState(() {
         _timerContoller.cancel();
@@ -158,6 +170,15 @@ class _WorkOutState extends State<WorkOut> {
         _isPaused = false;
       });
     } catch (e) {}
+  }
+
+  _onStopProgress() async {
+    runningProgressDialog = new ProgressDialog(
+        context: context,
+        title: "กำลังบันทึกผลการวิ่ง",
+        content: "กรุณารอสักครู่...");
+    runningProgressDialog.customProgressDialog();
+    await _stopRun();
   }
 
   _stopRun() async {
@@ -191,6 +212,7 @@ class _WorkOutState extends State<WorkOut> {
       prefs.remove('_runexId');
       prefs.remove('_isStartedRun');
       prefs.remove('_isPaused');
+      runningProgressDialog.hideDialog();
       Navigator.push(
           context,
           MaterialPageRoute(
@@ -484,7 +506,7 @@ class _WorkOutState extends State<WorkOut> {
                                               Colors.transparent,
                                               () {
                                                 Navigator.pop(context);
-                                                _stopRun();
+                                                _onStopProgress();
                                               },
                                               "ยกเลิก",
                                               Colors.grey,
