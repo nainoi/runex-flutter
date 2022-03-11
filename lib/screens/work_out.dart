@@ -92,7 +92,6 @@ class _WorkOutState extends State<WorkOut> {
     super.initState();
     initPrefs();
     _timer();
-    // _moveCameraMap();
     _content = '';
     _odometer = 0.00.toStringAsFixed(2);
 
@@ -113,9 +112,20 @@ class _WorkOutState extends State<WorkOut> {
           title: "Runnig",
           text: '',
           sticky: true,
-          // layout: notificationLayout,
-          actions: ["pause", "resume"],
         )));
+  }
+
+  _alertErrorDialog() {
+    return CustomDialog.customDialog1Actions(
+        context,
+        "เกิดข้อผิดหลาด",
+        "กรุณาลองใหม่อีกครั้ง",
+        "ตกลง",
+        Colors.white,
+        Colors.amber,
+        Colors.transparent, () {
+      Navigator.pop(context);
+    });
   }
 
   // Fetch location in background functions
@@ -145,7 +155,7 @@ class _WorkOutState extends State<WorkOut> {
         }
       });
     } catch (e) {
-      // Alert somrthing
+      _alertErrorDialog();
     }
   }
 
@@ -158,7 +168,9 @@ class _WorkOutState extends State<WorkOut> {
         _timerContoller.cancel();
         _isPaused = true;
       });
-    } catch (e) {}
+    } catch (e) {
+      _alertErrorDialog();
+    }
   }
 
   _unpause() {
@@ -169,7 +181,9 @@ class _WorkOutState extends State<WorkOut> {
       setState(() {
         _isPaused = false;
       });
-    } catch (e) {}
+    } catch (e) {
+      _alertErrorDialog();
+    }
   }
 
   _onStopProgress() async {
@@ -220,7 +234,9 @@ class _WorkOutState extends State<WorkOut> {
                     runexId: _runexId,
                     isSend: false,
                   )));
-    } catch (e) {}
+    } catch (e) {
+      _alertErrorDialog();
+    }
   }
 
   _refreshRunex() async {
@@ -231,7 +247,9 @@ class _WorkOutState extends State<WorkOut> {
       setState(() {
         _runexId = id!;
       });
-    } catch (e) {}
+    } catch (e) {
+      _alertErrorDialog();
+    }
   }
 
   // Manually fetch the current position.
@@ -249,7 +267,7 @@ class _WorkOutState extends State<WorkOut> {
       controller?.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
           target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
     }).catchError((error) {
-      print('[getCurrentPosition] ERROR: $error');
+      _alertErrorDialog();
     });
   }
 
@@ -306,7 +324,7 @@ class _WorkOutState extends State<WorkOut> {
         _updatePolyLines(
             id, data['coords']['latitude'], data['coords']['longitude']);
       } catch (e) {
-        // Alert
+        _alertErrorDialog();
       }
     }
   }
