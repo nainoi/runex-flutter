@@ -101,13 +101,13 @@ class _WorkOutResultState extends State<WorkOutResult> {
     }
   }
 
-  _getLocationFirestor() async {
+  _getLocationFirestore() async {
     LocationFirestoreDatabase locationFirestoreDatabase =
         LocationFirestoreDatabase();
-    final locationFirestor =
-        await locationFirestoreDatabase.readByRunexDocId(providerId);
-    if (locationFirestor.success) {
-      final List locationList = locationFirestor.data;
+    final locationFirestore = await locationFirestoreDatabase
+        .readByRunexDocId(widget.runexFirestore['_doc_id']);
+    if (locationFirestore.success) {
+      final List locationList = locationFirestore.data;
       if (locationList.isNotEmpty) {
         _controller?.animateCamera(CameraUpdate.newCameraPosition(
             CameraPosition(
@@ -254,7 +254,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
     if (!widget.isSend) {
       _getRunexAndLocationDb();
     } else {
-      _getLocationFirestor();
+      _getLocationFirestore();
     }
     Provider.of<ConnectivityProvider>(context, listen: false).startMonitoring();
   }
