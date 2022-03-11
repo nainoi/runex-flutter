@@ -53,12 +53,34 @@ class _WorkOutResultState extends State<WorkOutResult> {
   late SharedPreferences prefs;
   late String providerId = '';
   ScreenshotController screenshotController = ScreenshotController();
+  late int pace = 0;
+  late String paceStr = '00:00';
+  late String distance = '0.00';
+  late String time = '00:00:00';
+  late String startTime = '';
+
+  _alertErrorDialog() {
+    return CustomDialog.customDialog1Actions(
+        context,
+        "เกิดข้อผิดพลาด",
+        "กรุณาลองใหม่อีกครั้ง",
+        "ตกลง",
+        Colors.white,
+        Colors.amber,
+        Colors.transparent, () {
+      Navigator.pop(context);
+    });
+  }
 
   intiPrefs() async {
     prefs = await SharedPreferences.getInstance();
     setState(() {
       providerId = prefs.getString("providerID") ?? '';
     });
+  }
+
+  _formatPace(int seconds) {
+    return '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(5, '0');
   }
 
   _getRunexAndLocationDb() async {
@@ -70,6 +92,14 @@ class _WorkOutResultState extends State<WorkOutResult> {
       setState(() {
         _runex = runex;
         _locations = locations;
+        pace = _runex[0].distanceKm! > 0
+            ? ((_runex[0].timeHrs! * 3600) / _runex[0].distanceKm!).round()
+            : 0;
+        paceStr = _formatPace(pace);
+        time = _formatTime((_runex[0].timeHrs! * 3600).round());
+        distance = _runex[0].distanceKm!.toStringAsFixed(2);
+        startTime = DateTimeUtils.getFullDateAndFullTime(
+            DateTime.parse(_runex[0].startTime));
       });
     }
     if (_locations.isNotEmpty) {
@@ -102,6 +132,19 @@ class _WorkOutResultState extends State<WorkOutResult> {
   }
 
   _getLocationFirestore() async {
+    setState(() {
+      pace = widget.runexFirestore['time_total_hours'] > 0
+          ? ((widget.runexFirestore['time_total_hours'] * 3600) /
+                  widget.runexFirestore['distance_total_km'])
+              .round()
+          : 0;
+      paceStr = _formatPace(pace);
+      time = _formatTime(
+          (widget.runexFirestore['time_total_hours'] * 3600).round());
+      distance = widget.runexFirestore['distance_total_km'].toStringAsFixed(2);
+      startTime = DateTimeUtils.getFullDateAndFullTime(
+          DateTime.parse(widget.runexFirestore['start_time'].toString()));
+    });
     LocationFirestoreDatabase locationFirestoreDatabase =
         LocationFirestoreDatabase();
     final locationFirestore = await locationFirestoreDatabase
@@ -230,7 +273,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
           }
         } else {}
       }
-    } catch (e) {}
+    } catch (e) {
+      _alertErrorDialog();
+    }
   }
 
   late ProgressDialog runningProgressDialog;
@@ -244,7 +289,18 @@ class _WorkOutResultState extends State<WorkOutResult> {
           content: "กรุณารอสักครู่...");
       runningProgressDialog.customProgressDialog();
       await _onSubmit();
-    } else {}
+    } else {
+      CustomDialog.customDialog1Actions(
+          context,
+          "ขาดการเชื่อมต่อ",
+          "กรุณาลองใหม่อีกครั้ง",
+          "ตกลง",
+          Colors.white,
+          Colors.amber,
+          Colors.transparent, () {
+        Navigator.pop(context);
+      });
+    }
   }
 
   @override
@@ -397,31 +453,14 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
-                                              _locations.isNotEmpty &&
-                                                      !widget.isSend
-                                                  ? "${_runex[0].distanceKm!.toStringAsFixed(2)}(km)"
-                                                  : widget.isSend
-                                                      ? "${widget.runexFirestore['distance_total_km'].toStringAsFixed(2)}(km)"
-                                                      : "0.00(km)",
+                                              "$distance (km)",
                                               style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 24,
                                                   fontWeight: FontWeight.bold),
                                             ),
                                             Text(
-                                              _runex.isNotEmpty &&
-                                                      !widget.isSend
-                                                  ? _formatTime(
-                                                      ((_runex[0].timeHrs)! *
-                                                              3600)
-                                                          .round())
-                                                  : widget.isSend
-                                                      ? _formatTime(
-                                                          (widget.runexFirestore[
-                                                                      'time_total_hours'] *
-                                                                  3600)
-                                                              .round())
-                                                      : '00:00:00',
+                                              time,
                                               style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 24,
@@ -430,19 +469,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                           ],
                                         ),
                                         Text(
-                                          _runex.isNotEmpty && !widget.isSend
-                                              ? DateTimeUtils
-                                                  .getFullDateAndFullTime(
-                                                      DateTime.parse(
-                                                          _runex[0].startTime))
-                                              : widget.isSend
-                                                  ? DateTimeUtils
-                                                      .getFullDateAndFullTime(
-                                                          DateTime.parse(widget
-                                                              .runexFirestore[
-                                                                  'start_time']
-                                                              .toString()))
-                                                  : '00:00:00',
+                                          startTime,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 18,
@@ -528,7 +555,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
       String fileName = (DateTime.now().microsecondsSinceEpoch).toString();
       await ImageGallerySaver.saveImage(Uint8List.fromList(pngBytes!),
           quality: 100, name: fileName);
-    } catch (err) {}
+    } catch (err) {
+      _alertErrorDialog();
+    }
   }
 
   _pickImage() async {
@@ -556,7 +585,9 @@ class _WorkOutResultState extends State<WorkOutResult> {
         await file.writeAsBytes(image!);
         await Share.shareFiles([file.path]);
       });
-    } catch (err) {}
+    } catch (err) {
+      _alertErrorDialog();
+    }
   }
 
   Widget _body() {
@@ -624,28 +655,14 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _locations.isNotEmpty && !widget.isSend
-                                            ? "${_runex[0].distanceKm!.toStringAsFixed(2)}(km)"
-                                            : widget.isSend
-                                                ? "${widget.runexFirestore['distance_total_km'].toStringAsFixed(2)}(km)"
-                                                : "0.00(km)",
+                                        "$distance (km)",
                                         style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold),
                                       ),
                                       Text(
-                                        _runex.isNotEmpty && !widget.isSend
-                                            ? _formatTime(
-                                                ((_runex[0].timeHrs)! * 3600)
-                                                    .round())
-                                            : widget.isSend
-                                                ? _formatTime((widget
-                                                                .runexFirestore[
-                                                            'time_total_hours'] *
-                                                        3600)
-                                                    .round())
-                                                : '00:00:00',
+                                        time,
                                         style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 24,
@@ -654,17 +671,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                                     ],
                                   ),
                                   Text(
-                                    _runex.isNotEmpty && !widget.isSend
-                                        ? DateTimeUtils.getFullDateAndFullTime(
-                                            DateTime.parse(_runex[0].startTime))
-                                        : widget.isSend
-                                            ? DateTimeUtils
-                                                .getFullDateAndFullTime(
-                                                    DateTime.parse(widget
-                                                        .runexFirestore[
-                                                            'start_time']
-                                                        .toString()))
-                                            : '00:00:00',
+                                    startTime,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 18,
@@ -686,29 +693,15 @@ class _WorkOutResultState extends State<WorkOutResult> {
                           children: [
                             _RunDetail(
                               title: 'ระยะทาง(km)',
-                              subTitle: _locations.isNotEmpty && !widget.isSend
-                                  ? _runex[0].distanceKm!.toStringAsFixed(2)
-                                  : widget.isSend
-                                      ? widget
-                                          .runexFirestore['distance_total_km']
-                                          .toStringAsFixed(2)
-                                      : '0.00',
+                              subTitle: distance,
                             ),
                             _RunDetail(
                               title: 'ระยะเวลา',
-                              subTitle: _runex.isNotEmpty && !widget.isSend
-                                  ? _formatTime(
-                                      ((_runex[0].timeHrs)! * 3600).round())
-                                  : widget.isSend
-                                      ? _formatTime((widget.runexFirestore[
-                                                  'time_total_hours'] *
-                                              3600)
-                                          .round())
-                                      : '00:00:00',
+                              subTitle: time,
                             ),
                             _RunDetail(
                               title: '(min/km)',
-                              subTitle: '00:00',
+                              subTitle: paceStr,
                             ),
                             _RunDetail(
                               title: 'แคลอรี่(cal)',

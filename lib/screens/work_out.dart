@@ -36,30 +36,52 @@ class _WorkOutState extends State<WorkOut> {
   late String providerId = '';
   late Location location = new Location();
   late ProgressDialog runningProgressDialog;
+  late int _runexId = 0;
+  late String _odometer = '0.00';
+  late dynamic _content = '';
+  late int pace = 0;
+  late String paceStr = '00:00';
+  late double calorie = 0.0;
+  late String calorieStr = '0.00';
 
-  initPrefs() async {
-    prefs = await SharedPreferences.getInstance();
+  // Google map and Polyline state variables
+  GoogleMapController? controller;
+  Map<PolylineId, Polyline> polylines = <PolylineId, Polyline>{};
+  PolylineId? selectedPolyline;
+  final List<LatLng> points = <LatLng>[];
+
+  _initPrefs() async {
+    final pref = await SharedPreferences.getInstance();
+    setState(() {
+      prefs = pref;
+    });
+    _validateSharePrefsAndState();
+  }
+
+  // Validatee share prefs and state when start page
+  _validateSharePrefsAndState() {
     setState(() {
       _isStartedRun = prefs.getBool('_isStartedRun') ?? false;
       _isPaused = prefs.getBool('_isPaused') ?? false;
       _runexId = prefs.getInt('_runexId') ?? 0;
       providerId = prefs.getString("providerID") ?? '';
+      calorie = prefs.getDouble('calories') ?? 0.0;
     });
+
     final startTime = prefs.getInt("startTime") ?? 0;
     final currentTime = Timestamp.fromDate(DateTime.now());
-    final pausedTime = prefs.getInt('pausedTime');
+    final pausedTime = prefs.getInt('pausedTime') ?? 0;
     if (startTime > 0) {
       final diffTime =
           !_isPaused ? currentTime.seconds - startTime : pausedTime;
       setState(() {
-        timer = diffTime!;
+        timer = diffTime;
         if (_isPaused) {
           Timer(const Duration(milliseconds: 500), () {
-            timeStr = _formatTime(pausedTime!);
+            timeStr = _formatTime(pausedTime);
           });
         }
       });
-
       if (!_isPaused) {
         _startTime();
       }
@@ -69,17 +91,7 @@ class _WorkOutState extends State<WorkOut> {
     }
   }
 
-  late int _runexId = 0;
-  late String _odometer;
-  late dynamic _content;
-
-  // Google map and Polyline state variables
-  GoogleMapController? controller;
-  Map<PolylineId, Polyline> polylines = <PolylineId, Polyline>{};
-  PolylineId? selectedPolyline;
-  final List<LatLng> points = <LatLng>[];
-
-  _timer() async {
+  _setTimeDelayForGoogleMap() {
     Timer(const Duration(milliseconds: 500), () {
       setState(() {
         _canDisplayMap = true;
@@ -90,10 +102,8 @@ class _WorkOutState extends State<WorkOut> {
   @override
   void initState() {
     super.initState();
-    initPrefs();
-    _timer();
-    _content = '';
-    _odometer = 0.00.toStringAsFixed(2);
+    _initPrefs();
+    _setTimeDelayForGoogleMap();
 
     // 1.  Listen to events (See docs for all 12 available events).
     bg.BackgroundGeolocation.onLocation(_onLocation);
@@ -118,7 +128,7 @@ class _WorkOutState extends State<WorkOut> {
   _alertErrorDialog() {
     return CustomDialog.customDialog1Actions(
         context,
-        "เกิดข้อผิดหลาด",
+        "เกิดข้อผิดพลาด",
         "กรุณาลองใหม่อีกครั้ง",
         "ตกลง",
         Colors.white,
@@ -128,11 +138,9 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
-  // Fetch location in background functions
   _startRun() async {
     try {
       _moveCameraMap();
-      final startTime = Timestamp.fromDate(DateTime.now());
       bg.BackgroundGeolocation.start().then((value) async {
         bg.BackgroundGeolocation.setOdometer(0.0);
         final date = DateTime.now();
@@ -150,7 +158,8 @@ class _WorkOutState extends State<WorkOut> {
           setState(() {
             _isStartedRun = true;
           });
-          prefs.setInt("startTime", startTime.seconds);
+          prefs.setInt(
+              "startTime", DateTimeUtils.getSencondsTimestam(DateTime.now()));
           _startTime();
         }
       });
@@ -163,6 +172,7 @@ class _WorkOutState extends State<WorkOut> {
     try {
       prefs.setBool('_isPaused', true);
       prefs.setInt('pausedTime', timer);
+      prefs.setDouble('calories', calorie);
       bg.BackgroundGeolocation.stop();
       setState(() {
         _timerContoller.cancel();
@@ -226,8 +236,9 @@ class _WorkOutState extends State<WorkOut> {
       prefs.remove('_runexId');
       prefs.remove('_isStartedRun');
       prefs.remove('_isPaused');
+      prefs.remove('calories');
       runningProgressDialog.hideDialog();
-      Navigator.push(
+      await Navigator.push(
           context,
           MaterialPageRoute(
               builder: (context) => WorkOutResult(
@@ -252,29 +263,14 @@ class _WorkOutState extends State<WorkOut> {
     }
   }
 
-  // Manually fetch the current position.
-  void _onClickGetCurrentPosition() {
-    bg.BackgroundGeolocation.getCurrentPosition(
-            persist: false, // <-- do not persist this location
-            desiredAccuracy: 0, // <-- desire best possible accuracy
-            timeout: 30000, // <-- wait 30s before giving up.
-            samples: 3 // <-- sample 3 location before selecting best.
-            )
-        .then((bg.Location location) {
-      dynamic data = convert.jsonDecode(encoder.convert(location.toMap()));
-      final _target =
-          LatLng(data['coords']['latitude'], data['coords']['longitude']);
-      controller?.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-          target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
-    }).catchError((error) {
-      _alertErrorDialog();
-    });
-  }
-
   _formatTime(int seconds) {
     setState(() {
       timeStr = '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(8, '0');
     });
+  }
+
+  _formatPace(int seconds) {
+    return '${(Duration(seconds: seconds))}'.split('.')[0].padLeft(5, '0');
   }
 
   void _startTime() {
@@ -283,6 +279,10 @@ class _WorkOutState extends State<WorkOut> {
       setState(() {
         _timerContoller = Timer.periodic(oneSec, (Timer t) {
           timer += 1;
+          pace = (timer / int.parse(_odometer)).round();
+          paceStr = _formatPace(pace);
+          calorie += double.parse(_odometer) * 1.036;
+          calorieStr = calorie.toStringAsFixed(2);
           _formatTime(timer);
         });
       });
@@ -343,15 +343,9 @@ class _WorkOutState extends State<WorkOut> {
     });
   }
 
-  // Google map and Polyline functions
   void _onMapCreated(GoogleMapController controller) {
     this.controller = controller;
-    location.onLocationChanged.listen((event) {
-      final _target = LatLng(event.latitude!, event.longitude!);
-      this.controller!.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(
-              target: _target, bearing: 270.0, tilt: 30.0, zoom: 17.0)));
-    });
+    _moveCameraMap();
   }
 
   @override
@@ -359,14 +353,8 @@ class _WorkOutState extends State<WorkOut> {
     super.dispose();
   }
 
-  void _onPolylineTapped(PolylineId polylineId) {
-    setState(() {
-      selectedPolyline = polylineId;
-    });
-  }
-
   void _refreshPolyLines() async {
-    _onClickGetCurrentPosition();
+    _moveCameraMap();
     List<LocationModel> location =
         await LocationDatabase.instance.readByRunexId(_runexId);
     for (var i = 0; i < location.length; i++) {
@@ -382,9 +370,6 @@ class _WorkOutState extends State<WorkOut> {
         color: Colors.orange,
         width: 10,
         points: points,
-        onTap: () {
-          _onPolylineTapped(polylineId);
-        },
       );
 
       setState(() {
@@ -407,9 +392,6 @@ class _WorkOutState extends State<WorkOut> {
       color: Colors.orange,
       width: 10,
       points: points,
-      onTap: () {
-        _onPolylineTapped(polylineId);
-      },
     );
 
     setState(() {
@@ -485,8 +467,8 @@ class _WorkOutState extends State<WorkOut> {
                                   title: 'ระยะเวลา',
                                   subTitle: timer != 0 ? timeStr : '00:00:00'),
                               RunDetail(
-                                  title: 'Pace(min/km)', subTitle: '00:00'),
-                              RunDetail(title: 'แคลอรี่(cal)', subTitle: '0'),
+                                  title: 'Pace(min/km)', subTitle: paceStr),
+                              RunDetail(title: 'แคลอรี่(cal)', subTitle: calorieStr),
                             ],
                           ),
                         ),

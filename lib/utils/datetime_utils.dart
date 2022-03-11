@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class DateTimeUtils {
@@ -40,5 +41,10 @@ class DateTimeUtils {
   static String getFullDateInNumber(DateTime dateTime) {
     var formatter = DateFormat('dd/MM/yyyy');
     return formatter.format(dateTime);
+  }
+
+  static int getSencondsTimestam(DateTime dateTime) {
+    var timestamp = Timestamp.fromDate(dateTime);
+    return timestamp.seconds;
   }
 }

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:runex/databases/databases.dart';
 import 'package:runex/screens/screens.dart';
+import 'package:runex/screens/widgets/widgets.dart';
 import 'package:runex/services/firestore_database/firestore_database.dart';
 import 'package:runex/utils/datetime_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,31 +25,49 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
   late List<MonthAndYear> runexMothAndYearDb = [];
   late List<MonthAndYear> runexMothAndYearFirestore = [];
 
-  Future<void> _getRunexAndLocation() async {
-    prefs = await SharedPreferences.getInstance();
-    final providerId = prefs.getString("providerID") ?? '';
-    if (providerId != '') {
-      setState(() {
-        _isLoading = true;
-      });
-      final _runexDb =
-          await RunexDatabase.instance.readByProviderId(providerId);
-      final mothAndYearDb =
-          await RunexDatabase.instance.readByMonthAndYear(providerId);
+  _alertErrorDialog() {
+    return CustomDialog.customDialog1Actions(
+        context,
+        "เกิดข้อผิดพลาด",
+        "กรุณาลองใหม่อีกครั้ง",
+        "ตกลง",
+        Colors.white,
+        Colors.amber,
+        Colors.transparent, () {
+      Navigator.pop(context);
+    });
+  }
 
-      RunexFirestoreDatabase runexFirestoreDatabase = RunexFirestoreDatabase();
-      final _runexFirestore =
-          await runexFirestoreDatabase.readByProviderId(providerId);
-      final monthAndYearFirestore =
-          await runexFirestoreDatabase.readByMonthAndYear(providerId);
-      setState(() {
-        runexFirestore = _runexFirestore.data;
-        runexDb = _runexDb;
-        _selectedAlreadySend = _runexFirestore.success ? true : false;
-        runexMothAndYearDb = mothAndYearDb;
-        runexMothAndYearFirestore = monthAndYearFirestore.data;
-        _isLoading = false;
-      });
+  Future<void> _getRunexAndLocation() async {
+    try {
+      prefs = await SharedPreferences.getInstance();
+      final providerId = prefs.getString("providerID") ?? '';
+      if (providerId != '') {
+        setState(() {
+          _isLoading = true;
+        });
+        final _runexDb =
+            await RunexDatabase.instance.readByProviderId(providerId);
+        final mothAndYearDb =
+            await RunexDatabase.instance.readByMonthAndYear(providerId);
+
+        RunexFirestoreDatabase runexFirestoreDatabase =
+            RunexFirestoreDatabase();
+        final _runexFirestore =
+            await runexFirestoreDatabase.readByProviderId(providerId);
+        final monthAndYearFirestore =
+            await runexFirestoreDatabase.readByMonthAndYear(providerId);
+        setState(() {
+          runexFirestore = _runexFirestore.data;
+          runexDb = _runexDb;
+          _selectedAlreadySend = _runexFirestore.success ? true : false;
+          runexMothAndYearDb = mothAndYearDb;
+          runexMothAndYearFirestore = monthAndYearFirestore.data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      _alertErrorDialog();
     }
   }
 
@@ -93,8 +112,8 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
                                     runexFirestore: runexFirestore[index],
                                   )));
                     },
-                    distance:
-                        runexFirestore[index]['distance_total_km'].toStringAsFixed(2),
+                    distance: runexFirestore[index]['distance_total_km']
+                        .toStringAsFixed(2),
                     startTime: runexFirestore[index]['start_time'],
                   );
                 }
@@ -301,7 +320,7 @@ class ExpandedBody extends StatelessWidget {
                                     TextStyle(color: Colors.grey, fontSize: 14),
                               ),
                               // SizedBox(width: 50),
-                              Text('${distance} km',
+                              Text('$distance km',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
