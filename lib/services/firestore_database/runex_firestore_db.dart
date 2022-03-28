@@ -20,7 +20,9 @@ class RunexFirestoreDatabase {
       'time_total_hours': runex.timeHrs,
       '_doc_id': runexDocument.id,
       'is_saved': runex.isSaved,
-      'month_and_year': runex.monthAndYear
+      'month_and_year': runex.monthAndYear,
+      'pace': runex.pace,
+      'calories': runex.calories
     }).then((value) {
       return FirestoreReturn(success: true, data: runexDocument.id);
     }).catchError((error) {
@@ -77,11 +79,12 @@ class RunexFirestoreDatabase {
 
           runexCountMap[e['month_and_year']] = 1;
 
-          // calMap[e['month_and_year']] = 0.0;
-          // calMap[e['month_and_year']] += e['cal_total'];
+          calMap[e['month_and_year']] = 0.0;
+          calMap[e['month_and_year']] += e['calories'];
         } else {
           distanceMap[e['month_and_year']] += e['distance_total_km'];
           timeMap[e['month_and_year']] += e['time_total_hours'];
+          calMap[e['month_and_year']] += e['calories'];
           runexCountMap[e['month_and_year']] += 1;
         }
       }).toList();
@@ -89,13 +92,15 @@ class RunexFirestoreDatabase {
       final runexCountValuesList = runexCountMap.values.toList();
       final distanceList = distanceMap.values.toList();
       final timeList = timeMap.values.toList();
+      final caloriesList = calMap.values.toList();
       List<MonthAndYear> monthAndYear = [];
       for (var i = 0; i < runexCountList.length; i++) {
         monthAndYear.add(MonthAndYear(
             monthAndYear: runexCountList[i],
             runexCount: runexCountValuesList[i],
             distanceTotal: distanceList[i],
-            timeTotal: timeList[i]));
+            timeTotal: timeList[i],
+            caloriesTotal: caloriesList[i]));
       }
       return FirestoreReturn(success: true, data: monthAndYear);
     }).catchError((error) {

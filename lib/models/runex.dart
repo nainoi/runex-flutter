@@ -10,6 +10,8 @@ class Runex {
   bool isSaved;
   String? docId;
   String monthAndYear;
+  int? pace;
+  double? calories;
 
   Runex(
       {this.id,
@@ -20,7 +22,9 @@ class Runex {
       this.timeHrs,
       required this.isSaved,
       this.docId,
-      required this.monthAndYear});
+      required this.monthAndYear,
+      this.pace,
+      this.calories});
 
   factory Runex.fromJson(Map<String, dynamic> json) => new Runex(
       id: json['_id'],
@@ -31,7 +35,9 @@ class Runex {
       timeHrs: double.parse(json['time_total_hours']),
       isSaved: json['is_saved'] == 1,
       docId: json['_doc_id'],
-      monthAndYear: json['month_and_year']);
+      monthAndYear: json['month_and_year'],
+      pace: int.parse(json['pace']),
+      calories: double.parse(json['calories']));
 
   Map<String, dynamic> toJson() {
     return {
@@ -43,7 +49,9 @@ class Runex {
       'time_total_hours': timeHrs,
       'is_saved': isSaved ? 1 : 0,
       '_doc_id': docId,
-      'month_and_year': monthAndYear
+      'month_and_year': monthAndYear,
+      'pace': pace,
+      'calories': calories
     };
   }
 }

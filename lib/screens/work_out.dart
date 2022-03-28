@@ -151,7 +151,9 @@ class _WorkOutState extends State<WorkOut> {
             endTime: '',
             distanceKm: 0.0,
             timeHrs: 0.0,
-            isSaved: false));
+            isSaved: false,
+            pace: 0,
+            calories: 0.0));
         if (response > 0) {
           _refreshRunex();
           prefs.setBool('_isStartedRun', true);
@@ -224,7 +226,9 @@ class _WorkOutState extends State<WorkOut> {
           distanceKm: double.parse(_odometer),
           timeHrs: timer / 3600,
           isSaved: true,
-          docId: null));
+          docId: null,
+          pace: pace,
+          calories: calorie));
       setState(() {
         timer = 0;
       });
@@ -252,8 +256,8 @@ class _WorkOutState extends State<WorkOut> {
 
   _refreshRunex() async {
     try {
-      final runexList = await RunexDatabase.instance.read();
-      prefs.setInt('_runexId', runexList.length);
+      final runexLength = await RunexDatabase.instance.getLength();
+      prefs.setInt('_runexId', runexLength);
       final id = prefs.getInt('_runexId');
       setState(() {
         _runexId = id!;
@@ -279,7 +283,9 @@ class _WorkOutState extends State<WorkOut> {
       setState(() {
         _timerContoller = Timer.periodic(oneSec, (Timer t) {
           timer += 1;
-          pace = (timer / int.parse(_odometer)).round();
+          pace = double.parse(_odometer) > 0
+              ? (timer / double.parse(_odometer)).round()
+              : 0;
           paceStr = _formatPace(pace);
           calorie += double.parse(_odometer) * 1.036;
           calorieStr = calorie.toStringAsFixed(2);
@@ -468,7 +474,8 @@ class _WorkOutState extends State<WorkOut> {
                                   subTitle: timer != 0 ? timeStr : '00:00:00'),
                               RunDetail(
                                   title: 'Pace(min/km)', subTitle: paceStr),
-                              RunDetail(title: 'แคลอรี่(cal)', subTitle: calorieStr),
+                              RunDetail(
+                                  title: 'แคลอรี่(cal)', subTitle: calorieStr),
                             ],
                           ),
                         ),

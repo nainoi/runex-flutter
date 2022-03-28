@@ -58,6 +58,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
   late String distance = '0.00';
   late String time = '00:00:00';
   late String startTime = '';
+  late String calories = '0.00';
 
   _alertErrorDialog() {
     return CustomDialog.customDialog1Actions(
@@ -92,14 +93,13 @@ class _WorkOutResultState extends State<WorkOutResult> {
       setState(() {
         _runex = runex;
         _locations = locations;
-        pace = _runex[0].distanceKm! > 0
-            ? ((_runex[0].timeHrs! * 3600) / _runex[0].distanceKm!).round()
-            : 0;
+        pace = _runex[0].pace!;
         paceStr = _formatPace(pace);
         time = _formatTime((_runex[0].timeHrs! * 3600).round());
         distance = _runex[0].distanceKm!.toStringAsFixed(2);
         startTime = DateTimeUtils.getFullDateAndFullTime(
             DateTime.parse(_runex[0].startTime));
+        calories = _runex[0].calories!.toStringAsFixed(2);
       });
     }
     if (_locations.isNotEmpty) {
@@ -133,17 +133,14 @@ class _WorkOutResultState extends State<WorkOutResult> {
 
   _getLocationFirestore() async {
     setState(() {
-      pace = widget.runexFirestore['time_total_hours'] > 0
-          ? ((widget.runexFirestore['time_total_hours'] * 3600) /
-                  widget.runexFirestore['distance_total_km'])
-              .round()
-          : 0;
+      pace = widget.runexFirestore['pace'];
       paceStr = _formatPace(pace);
       time = _formatTime(
           (widget.runexFirestore['time_total_hours'] * 3600).round());
       distance = widget.runexFirestore['distance_total_km'].toStringAsFixed(2);
       startTime = DateTimeUtils.getFullDateAndFullTime(
           DateTime.parse(widget.runexFirestore['start_time'].toString()));
+      calories = widget.runexFirestore['calories'].toString();
     });
     LocationFirestoreDatabase locationFirestoreDatabase =
         LocationFirestoreDatabase();
@@ -705,7 +702,7 @@ class _WorkOutResultState extends State<WorkOutResult> {
                             ),
                             _RunDetail(
                               title: 'แคลอรี่(cal)',
-                              subTitle: '0.00',
+                              subTitle: calories,
                             ),
                             Padding(
                               padding: const EdgeInsets.only(top: 3, bottom: 3),
