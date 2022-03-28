@@ -328,214 +328,242 @@ class _WorkOutResultState extends State<WorkOutResult> {
         context: context,
         isScrollControlled: true,
         builder: (BuildContext context) {
-          return FractionallySizedBox(
-              heightFactor: 0.85,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: Stack(
-                      children: [
-                        Container(
-                          alignment: Alignment.topLeft,
-                          child: IconButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              icon: Icon(Icons.close_rounded)),
-                        ),
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              "แชร์",
-                              style: TextStyle(
-                                  color: Colors.grey[800],
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                      flex: 4,
-                      child: RepaintBoundary(
-                        key: _globalkey,
-                        child: Screenshot(
-                          controller: screenshotController,
-                          child: Stack(children: [
-                            ShaderMask(
-                                shaderCallback: (Rect bounds) {
-                                  return LinearGradient(
-                                    begin: Alignment.bottomCenter,
-                                    end: Alignment.center,
-                                    colors: [
-                                      Colors.black38,
-                                      Colors.transparent
-                                    ],
-                                  ).createShader(bounds);
+          return WillPopScope(
+            onWillPop: () {
+              setState(() {
+                _isSelectedImageFromDevice = false;
+              });
+              return Future.value(true);
+            },
+            child: FractionallySizedBox(
+                heightFactor: 0.85,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Stack(
+                        children: [
+                          Container(
+                            alignment: Alignment.topLeft,
+                            child: IconButton(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    _isSelectedImageFromDevice = false;
+                                  });
                                 },
-                                blendMode: BlendMode.colorBurn,
-                                child: SizedBox(
-                                    width: MediaQuery.of(context).size.width,
-                                    child: _isSelectedImageFromDevice
-                                        ? Image.file(File(imageFromDevice.path),
-                                            fit: BoxFit.cover)
-                                        : Image.memory(imageFromMap,
-                                            fit: BoxFit.fill))),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                              child: Column(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Image.asset(Assets.eventaLogoDesktop,
-                                            height: 100, width: 100),
-                                        GestureDetector(
-                                          onTap: () {
-                                            _pickImage();
-                                            Navigator.pop(context);
-                                          },
-                                          child: Container(
-                                            width: 35,
-                                            height: 35,
-                                            decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.all(
-                                                    Radius.circular(50)),
-                                                border: Border.all(
-                                                    color: Colors.white),
-                                                color: Colors.grey[300]),
-                                            child: Icon(
-                                              Icons.camera_alt_outlined,
-                                              size: 20,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          // ignore: prefer_const_literals_to_create_immutables
-                                          children: [
-                                            Text(
-                                              'ระยะทาง',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 18),
-                                            ),
-                                            Text(
-                                              'ระยะเวลา',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 18),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 4),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              "$distance (km)",
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            Text(
-                                              time,
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
-                                        ),
-                                        Text(
-                                          startTime,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  ]),
-                            ),
-                          ]),
-                        ),
-                      )),
-                  Flexible(
-                      flex: 2,
-                      child: Container(
-                        width: MediaQuery.of(context).size.width,
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            children: [
-                              Text(
+                                icon: Icon(Icons.close_rounded)),
+                          ),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
                                 "แชร์",
                                 style: TextStyle(
                                     color: Colors.grey[800],
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600),
                               ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: _shareToFacebook,
-                                child: Text(
-                                  'แชร์ภาพ',
-                                  style: TextStyle(
-                                      fontSize: 16.0,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                    fixedSize: Size(300, 50),
-                                    primary: Colors.blue[900],
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(25.0)))),
+                            ),
+                          )
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                        flex: 4,
+                        child: Stack(children: [
+                          RepaintBoundary(
+                            key: _globalkey,
+                            child: Screenshot(
+                              controller: screenshotController,
+                              child: Stack(
+                                children: [
+                                  ShaderMask(
+                                      shaderCallback: (Rect bounds) {
+                                        return LinearGradient(
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.center,
+                                          colors: [
+                                            Colors.black38,
+                                            Colors.transparent
+                                          ],
+                                        ).createShader(bounds);
+                                      },
+                                      blendMode: BlendMode.colorBurn,
+                                      child: SizedBox(
+                                          width:
+                                              MediaQuery.of(context).size.width,
+                                          child: _isSelectedImageFromDevice
+                                              ? Image.file(
+                                                  File(imageFromDevice.path),
+                                                  fit: BoxFit.cover)
+                                              : Image.memory(imageFromMap,
+                                                  fit: BoxFit.fill))),
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                                    child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Image.asset(
+                                                  Assets.eventaLogoDesktop,
+                                                  height: 100,
+                                                  width: 100),
+                                            ],
+                                          ),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.end,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                // ignore: prefer_const_literals_to_create_immutables
+                                                children: [
+                                                  Text(
+                                                    'ระยะทาง',
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 18),
+                                                  ),
+                                                  Text(
+                                                    'ระยะเวลา',
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 18),
+                                                  ),
+                                                ],
+                                              ),
+                                              SizedBox(height: 4),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "$distance (km)",
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  Text(
+                                                    time,
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ],
+                                              ),
+                                              Text(
+                                                startTime,
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        ]),
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: 10),
-                              ElevatedButton(
-                                onPressed: _saveImage,
-                                child: Text(
-                                  'บันทึกภาพลงอุปกรณ์',
-                                  style: TextStyle(
-                                      fontSize: 16.0,
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                    fixedSize: Size(300, 50),
-                                    primary: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                        side: BorderSide(color: Colors.grey),
-                                        borderRadius: BorderRadius.all(
-                                            Radius.circular(25.0)))),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ))
-                ],
-              ));
+                          Positioned(
+                            top: 30,
+                            right: 16,
+                            child: GestureDetector(
+                              onTap: () {
+                                _pickImage();
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                decoration: BoxDecoration(
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(50)),
+                                    border: Border.all(color: Colors.white),
+                                    color: Colors.grey[300]),
+                                child: Icon(
+                                  Icons.camera_alt_outlined,
+                                  size: 20,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ])),
+                    Flexible(
+                        flex: 2,
+                        child: Container(
+                          width: MediaQuery.of(context).size.width,
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              children: [
+                                Text(
+                                  "แชร์",
+                                  style: TextStyle(
+                                      color: Colors.grey[800],
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                SizedBox(height: 10),
+                                ElevatedButton(
+                                  onPressed: _shareToFacebook,
+                                  child: Text(
+                                    'แชร์ภาพ',
+                                    style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                      fixedSize: Size(300, 50),
+                                      primary: Colors.blue[900],
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(25.0)))),
+                                ),
+                                SizedBox(height: 10),
+                                ElevatedButton(
+                                  onPressed: _saveImage,
+                                  child: Text(
+                                    'บันทึกภาพลงอุปกรณ์',
+                                    style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                      fixedSize: Size(300, 50),
+                                      primary: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                          side: BorderSide(color: Colors.grey),
+                                          borderRadius: BorderRadius.all(
+                                              Radius.circular(25.0)))),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ))
+                  ],
+                )),
+          );
         });
   }
 
