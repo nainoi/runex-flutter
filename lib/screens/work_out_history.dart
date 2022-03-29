@@ -1,5 +1,6 @@
 // ignore_for_file: prefer_const_constructors
 
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:runex/databases/databases.dart';
 import 'package:runex/screens/screens.dart';
@@ -24,6 +25,14 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
   late List runexFirestore = [];
   late List<MonthAndYear> runexMothAndYearDb = [];
   late List<MonthAndYear> runexMothAndYearFirestore = [];
+  Flushbar pageRefreshedSnackbar = Flushbar(
+    message: 'Page Refreshed',
+    icon: Icon(Icons.check_circle_outline_rounded,
+        size: 28, color: Colors.green[300]),
+    duration: Duration(seconds: 2),
+    margin: EdgeInsets.all(8),
+    borderRadius: BorderRadius.circular(8),
+  );
 
   _alertErrorDialog() {
     return CustomDialog.customDialog1Actions(
@@ -60,7 +69,6 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
         setState(() {
           runexFirestore = _runexFirestore.data;
           runexDb = _runexDb;
-          _selectedAlreadySend = _runexFirestore.success ? true : false;
           runexMothAndYearDb = mothAndYearDb;
           runexMothAndYearFirestore = monthAndYearFirestore.data;
           _isLoading = false;
@@ -97,29 +105,38 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
         },
         body: SizedBox(
           height: item.runexCount > 5 ? 400 : 100 * (item.runexCount * 1.0),
-          child: ListView.builder(
-              itemBuilder: (BuildContext context, int index) {
-                if (runexFirestore[index]['month_and_year'] ==
-                    item.monthAndYear) {
-                  return ExpandedBody(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => WorkOutResult(
-                                    runexId: 0,
-                                    isSend: true,
-                                    runexFirestore: runexFirestore[index],
-                                  )));
-                    },
-                    distance: runexFirestore[index]['distance_total_km']
-                        .toStringAsFixed(2),
-                    startTime: runexFirestore[index]['start_time'],
-                  );
-                }
-                return Container();
-              },
-              itemCount: runexFirestore.length),
+          child: RefreshIndicator(
+            onRefresh: () {
+              return Future.delayed(Duration(seconds: 2), () {
+                _getRunexAndLocation();
+                pageRefreshedSnackbar.show(context);
+              });
+            },
+            color: Colors.amber[400],
+            child: ListView.builder(
+                itemBuilder: (BuildContext context, int index) {
+                  if (runexFirestore[index]['month_and_year'] ==
+                      item.monthAndYear) {
+                    return ExpandedBody(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => WorkOutResult(
+                                      runexId: 0,
+                                      isSend: true,
+                                      runexFirestore: runexFirestore[index],
+                                    )));
+                      },
+                      distance: runexFirestore[index]['distance_total_km']
+                          .toStringAsFixed(2),
+                      startTime: runexFirestore[index]['start_time'],
+                    );
+                  }
+                  return Container();
+                },
+                itemCount: runexFirestore.length),
+          ),
         ));
   }
 
@@ -139,27 +156,36 @@ class _WorkOutHistoryState extends State<WorkOutHistory> {
         },
         body: SizedBox(
           height: item.runexCount > 5 ? 400 : 100 * (item.runexCount * 1.0),
-          child: ListView.builder(
-              itemBuilder: (BuildContext context, int index) {
-                if (runexDb[index].monthAndYear == item.monthAndYear) {
-                  return ExpandedBody(
-                    onTap: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => WorkOutResult(
-                                    runexId: runexDb[index].id!,
-                                    isSend: false,
-                                  )));
-                    },
-                    distance: runexDb[index].distanceKm!.toStringAsFixed(2),
-                    startTime: runexDb[index].startTime,
-                  );
-                } else {
-                  return Container();
-                }
-              },
-              itemCount: runexDb.length),
+          child: RefreshIndicator(
+            onRefresh: () {
+              return Future.delayed(Duration(seconds: 2), () {
+                _getRunexAndLocation();
+                pageRefreshedSnackbar.show(context);
+              });
+            },
+            color: Colors.amber[400],
+            child: ListView.builder(
+                itemBuilder: (BuildContext context, int index) {
+                  if (runexDb[index].monthAndYear == item.monthAndYear) {
+                    return ExpandedBody(
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => WorkOutResult(
+                                      runexId: runexDb[index].id!,
+                                      isSend: false,
+                                    )));
+                      },
+                      distance: runexDb[index].distanceKm!.toStringAsFixed(2),
+                      startTime: runexDb[index].startTime,
+                    );
+                  } else {
+                    return Container();
+                  }
+                },
+                itemCount: runexDb.length),
+          ),
         ));
   }
 
@@ -319,7 +345,6 @@ class ExpandedBody extends StatelessWidget {
                                 style:
                                     TextStyle(color: Colors.grey, fontSize: 14),
                               ),
-                              // SizedBox(width: 50),
                               Text('$distance km',
                                   style: TextStyle(
                                       color: Colors.white,
