@@ -22,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:another_flushbar/flushbar.dart';
 
 class WorkOutResult extends StatefulWidget {
   final int runexId;
@@ -578,8 +579,19 @@ class _WorkOutResultState extends State<WorkOutResult> {
           await image.toByteData(format: ui.ImageByteFormat.png);
       var pngBytes = byteData?.buffer.asUint8List();
       String fileName = (DateTime.now().microsecondsSinceEpoch).toString();
-      await ImageGallerySaver.saveImage(Uint8List.fromList(pngBytes!),
-          quality: 100, name: fileName);
+      final response = await ImageGallerySaver.saveImage(
+          Uint8List.fromList(pngBytes!),
+          quality: 100,
+          name: fileName);
+      if (response['isSuccess']) {
+        Flushbar(
+          message: 'บันทึกภาพสำเร็จ',
+          icon: Icon(Icons.check_circle_outline_rounded, size: 28, color: Colors.green[300]),
+          duration: Duration(seconds: 2),
+          margin: EdgeInsets.all(8),
+          borderRadius: BorderRadius.circular(8),
+        ).show(context);
+      }
     } catch (err) {
       _alertErrorDialog();
     }
