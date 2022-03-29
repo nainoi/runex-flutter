@@ -163,8 +163,9 @@ class _HomeState extends State<Home> {
 
   void logout() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-    print("Provider" + prefs.getString("providerID").toString());
-    print("token" + prefs.getString("token").toString());
+    prefs.remove("providerID");
+    prefs.remove("token");
+    Navigator.pushAndRemoveUntil(
+        context, MaterialPageRoute(builder: (_) => Login()), (route) => false);
   }
 }

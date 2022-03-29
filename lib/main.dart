@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ),
         debugShowCheckedModeBanner: false,
-        home: const Login(),
+        home: const Welcome(),
         // home: MyHomePage(title: 'LineLoginAPI Tutorial | Login'),
         //home: FacebookPage(title: 'Facebook Login'));
       ),

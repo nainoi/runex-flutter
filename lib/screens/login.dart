@@ -32,21 +32,10 @@ class Login extends StatefulWidget {
 
 class _LoginState extends State<Login> {
   GoogleSignInAccount? _currentUser;
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-
-  Future<void> checkUserLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? loggedIn = prefs.getString("token");
-    if (loggedIn != null) {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const Home()));
-    }
-  }
 
   @override
   void initState() {
     super.initState();
-    checkUserLoggedIn();
   }
 
   @override
@@ -272,7 +261,7 @@ class _LoginState extends State<Login> {
   }
 
   void startLogin(String method) async {
-    final SharedPreferences prefs = await _prefs;
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (method == "LINE") {
       try {
         final result = await LineSDK.instance
@@ -286,8 +275,8 @@ class _LoginState extends State<Login> {
         if (res['success']) {
           prefs.setString("token", res['data']['code']);
           prefs.setString("providerID", userId);
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => const Home()));
+          Navigator.pushAndRemoveUntil(context,
+              MaterialPageRoute(builder: (_) => Home()), (route) => false);
         } else {
           Navigator.push(
               context, MaterialPageRoute(builder: (context) => const Login()));
@@ -330,8 +319,8 @@ class _LoginState extends State<Login> {
           if (res['success']) {
             prefs.setString("token", res['data']['code']);
             prefs.setString("providerID", userId);
-            Navigator.push(
-                context, MaterialPageRoute(builder: (context) => const Home()));
+            Navigator.pushAndRemoveUntil(context,
+              MaterialPageRoute(builder: (_) => Home()), (route) => false);
           } else {
             Navigator.push(context,
                 MaterialPageRoute(builder: (context) => const Login()));
@@ -373,8 +362,8 @@ class _LoginState extends State<Login> {
         if (res['success']) {
           prefs.setString("token", res['data']['code']);
           prefs.setString("providerID", userId);
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => const Home()));
+          Navigator.pushAndRemoveUntil(context,
+              MaterialPageRoute(builder: (_) => Home()), (route) => false);
         } else {
           Navigator.push(
               context, MaterialPageRoute(builder: (context) => const Login()));

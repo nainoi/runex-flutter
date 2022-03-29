@@ -287,7 +287,7 @@ class _WorkOutState extends State<WorkOut> {
               ? (timer / double.parse(_odometer)).round()
               : 0;
           paceStr = _formatPace(pace);
-          calorie += double.parse(_odometer) * 1.036;
+          calorie = double.parse(_odometer) * 1.036;
           calorieStr = calorie.toStringAsFixed(2);
           _formatTime(timer);
         });
