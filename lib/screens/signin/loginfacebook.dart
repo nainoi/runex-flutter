@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+// import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:runex/screens/signin/profile.dart';
 
 class Login extends StatefulWidget {
@@ -68,12 +68,12 @@ class _FacebookPageState extends State<FacebookPage> {
   }
 
   Future getAccessToken() async {
-    try {
-      final result = await LineSDK.instance.currentAccessToken;
-      return result?.value;
-    } on PlatformException catch (e) {
-      print(e.message);
-    }
+    // try {
+    //   final result = await LineSDK.instance.currentAccessToken;
+    //   return result?.value;
+    // } on PlatformException catch (e) {
+    //   print(e.message);
+    // }
   }
 
   @override

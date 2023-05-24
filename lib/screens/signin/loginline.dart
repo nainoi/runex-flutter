@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+// import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:runex/screens/signin/profile.dart';
 
 class Login extends StatefulWidget {
@@ -28,60 +28,60 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   void startLineLogin() async {
-    try {
-      final result = await LineSDK.instance.login(scopes: ["profile"]);
-      print(result.toString());
-      var accesstoken = await getAccessToken();
-      var displayname = result.userProfile?.displayName;
-      var statusmessage = result.userProfile?.statusMessage;
-      var imgUrl = result.userProfile?.pictureUrl;
-      var userId = result.userProfile?.userId;
-
-      print("AccessToken> " + accesstoken);
-      print("DisplayName> " + displayname!);
-      print("StatusMessage> " + statusmessage!);
-      print("ProfileURL> " + imgUrl!);
-      print("userId> " + userId!);
-
-      Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => ProfilePage(
-                    puserId: userId,
-                    paccessToken: accesstoken,
-                    pdisplayName: displayname,
-                    pimgUrl: imgUrl,
-                    pstatusMessage: statusmessage,
-                  )));
-    } on PlatformException catch (e) {
-      print(e);
-      switch (e.code.toString()) {
-        case "CANCEL":
-          showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
-              "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-          print("User Cancel the login");
-          break;
-        case "AUTHENTICATION_AGENT_ERROR":
-          showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย LINE",
-              "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-          print("User decline the login");
-          break;
-        default:
-          showDialogBox("เกิดข้อผิดพลาด",
-              "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-          print("Unknown but failed to login");
-          break;
-      }
-    }
+    // try {
+    //   final result = await LineSDK.instance.login(scopes: ["profile"]);
+    //   print(result.toString());
+    //   var accesstoken = await getAccessToken();
+    //   var displayname = result.userProfile?.displayName;
+    //   var statusmessage = result.userProfile?.statusMessage;
+    //   var imgUrl = result.userProfile?.pictureUrl;
+    //   var userId = result.userProfile?.userId;
+    //
+    //   print("AccessToken> " + accesstoken);
+    //   print("DisplayName> " + displayname!);
+    //   print("StatusMessage> " + statusmessage!);
+    //   print("ProfileURL> " + imgUrl!);
+    //   print("userId> " + userId!);
+    //
+    //   Navigator.push(
+    //       context,
+    //       MaterialPageRoute(
+    //           builder: (context) => ProfilePage(
+    //                 puserId: userId,
+    //                 paccessToken: accesstoken,
+    //                 pdisplayName: displayname,
+    //                 pimgUrl: imgUrl,
+    //                 pstatusMessage: statusmessage,
+    //               )));
+    // } on PlatformException catch (e) {
+    //   print(e);
+    //   switch (e.code.toString()) {
+    //     case "CANCEL":
+    //       showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
+    //           "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    //       print("User Cancel the login");
+    //       break;
+    //     case "AUTHENTICATION_AGENT_ERROR":
+    //       showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย LINE",
+    //           "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    //       print("User decline the login");
+    //       break;
+    //     default:
+    //       showDialogBox("เกิดข้อผิดพลาด",
+    //           "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+    //       print("Unknown but failed to login");
+    //       break;
+    //   }
+    // }
   }
 
   Future getAccessToken() async {
-    try {
-      final result = await LineSDK.instance.currentAccessToken;
-      return result?.value;
-    } on PlatformException catch (e) {
-      print(e.message);
-    }
+    // try {
+    //   final result = await LineSDK.instance.currentAccessToken;
+    //   return result?.value;
+    // } on PlatformException catch (e) {
+    //   print(e.message);
+    // }
   }
 
   @override

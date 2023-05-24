@@ -4,8 +4,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:flutter_line_sdk/flutter_line_sdk.dart';
+// import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+// import 'package:flutter_line_sdk/flutter_line_sdk.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:runex/utils/const_utils.dart';
@@ -263,92 +263,92 @@ class _LoginState extends State<Login> {
   void startLogin(String method) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (method == "LINE") {
-      try {
-        final result = await LineSDK.instance
-            .login(scopes: ["profile", "openid", "email"]);
-        var displayname = result.userProfile?.displayName;
-        var imgUrl = result.userProfile?.pictureUrl;
-        var userId = result.userProfile?.userId;
-        var email = result.accessToken.idToken!['email'];
-        final res =
-            await getUserToken(userId!, displayname!, imgUrl!, email, "LINE");
-        if (res['success']) {
-          prefs.setString("token", res['data']['code']);
-          prefs.setString("providerID", userId);
-          Navigator.pushAndRemoveUntil(context,
-              MaterialPageRoute(builder: (_) => Home()), (route) => false);
-        } else {
-          Navigator.push(
-              context, MaterialPageRoute(builder: (context) => const Login()));
-        }
-      } on PlatformException catch (e) {
-        print(e);
-        switch (e.code.toString()) {
-          case "CANCEL":
-            showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
-                "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("User Cancel the login");
-            break;
-          case "AUTHENTICATION_AGENT_ERROR":
-            showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย LINE",
-                "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("User decline the login");
-            break;
-          default:
-            showDialogBox("เกิดข้อผิดพลาด",
-                "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("Unknown but failed to login");
-            break;
-        }
-      }
+      // try {
+      //   final result = await LineSDK.instance
+      //       .login(scopes: ["profile", "openid", "email"]);
+      //   var displayname = result.userProfile?.displayName;
+      //   var imgUrl = result.userProfile?.pictureUrl;
+      //   var userId = result.userProfile?.userId;
+      //   var email = result.accessToken.idToken!['email'];
+      //   final res =
+      //       await getUserToken(userId!, displayname!, imgUrl!, email, "LINE");
+      //   if (res['success']) {
+      //     prefs.setString("token", res['data']['code']);
+      //     prefs.setString("providerID", userId);
+      //     Navigator.pushAndRemoveUntil(context,
+      //         MaterialPageRoute(builder: (_) => Home()), (route) => false);
+      //   } else {
+      //     Navigator.push(
+      //         context, MaterialPageRoute(builder: (context) => const Login()));
+      //   }
+      // } on PlatformException catch (e) {
+      //   print(e);
+      //   switch (e.code.toString()) {
+      //     case "CANCEL":
+      //       showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
+      //           "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      //       print("User Cancel the login");
+      //       break;
+      //     case "AUTHENTICATION_AGENT_ERROR":
+      //       showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย LINE",
+      //           "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      //       print("User decline the login");
+      //       break;
+      //     default:
+      //       showDialogBox("เกิดข้อผิดพลาด",
+      //           "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+      //       print("Unknown but failed to login");
+      //       break;
+      //   }
+      // }
     } else if (method == "FACEBOOK") {
-      try {
-        final result = await FacebookAuth.instance
-            .login(); // by default we request the email and the public profile
-// or FacebookAuth.i.login()
-        print(result.status);
-        if (result.status == LoginStatus.success) {
-          // you are logged
-          final userData = await FacebookAuth.instance.getUserData();
-          var displayname = userData['name'];
-          var imgUrl = userData['picture']['data']['url'];
-          var userId = userData['id'];
-          var email = userData['email'];
-          final res = await getUserToken(
-              userId!, displayname!, imgUrl!, email, "FACEBOOK");
-          if (res['success']) {
-            prefs.setString("token", res['data']['code']);
-            prefs.setString("providerID", userId);
-            Navigator.pushAndRemoveUntil(context,
-              MaterialPageRoute(builder: (_) => Home()), (route) => false);
-          } else {
-            Navigator.push(context,
-                MaterialPageRoute(builder: (context) => const Login()));
-          }
-        } else {
-          print(result.status);
-          print(result.message);
-        }
-      } on PlatformException catch (e) {
-        print(e);
-        switch (e.code.toString()) {
-          case "CANCEL":
-            showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
-                "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("User Cancel the login");
-            break;
-          case "AUTHENTICATION_AGENT_ERROR":
-            showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย FACEBOOK",
-                "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("User decline the login");
-            break;
-          default:
-            showDialogBox("เกิดข้อผิดพลาด",
-                "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
-            print("Unknown but failed to login");
-            break;
-        }
-      }
+      // try {
+//         final result = await FacebookAuth.instance
+//             .login(); // by default we request the email and the public profile
+// // or FacebookAuth.i.login()
+//         print(result.status);
+//         if (result.status == LoginStatus.success) {
+//           // you are logged
+//           final userData = await FacebookAuth.instance.getUserData();
+//           var displayname = userData['name'];
+//           var imgUrl = userData['picture']['data']['url'];
+//           var userId = userData['id'];
+//           var email = userData['email'];
+//           final res = await getUserToken(
+//               userId!, displayname!, imgUrl!, email, "FACEBOOK");
+//           if (res['success']) {
+//             prefs.setString("token", res['data']['code']);
+//             prefs.setString("providerID", userId);
+//             Navigator.pushAndRemoveUntil(context,
+//               MaterialPageRoute(builder: (_) => Home()), (route) => false);
+//           } else {
+//             Navigator.push(context,
+//                 MaterialPageRoute(builder: (context) => const Login()));
+//           }
+//         } else {
+//           print(result.status);
+//           print(result.message);
+//         }
+//       } on PlatformException catch (e) {
+//         print(e);
+//         switch (e.code.toString()) {
+//           case "CANCEL":
+//             showDialogBox("คุณยกเลิกการเข้าสู่ระบบ",
+//                 "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+//             print("User Cancel the login");
+//             break;
+//           case "AUTHENTICATION_AGENT_ERROR":
+//             showDialogBox("คุณไม่อนุญาติการเข้าสู่ระบบด้วย FACEBOOK",
+//                 "เมื่อสักครู่คุณกดยกเลิกการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+//             print("User decline the login");
+//             break;
+//           default:
+//             showDialogBox("เกิดข้อผิดพลาด",
+//                 "เกิดข้อผิดพลาดไม่ทราบสาเหตุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง");
+//             print("Unknown but failed to login");
+//             break;
+//         }
+//       }
     } else if (method == "GOOGLE") {
       try {
         await _googleSignIn.signIn();
@@ -392,12 +392,12 @@ class _LoginState extends State<Login> {
   }
 
   Future getAccessToken() async {
-    try {
-      final result = await LineSDK.instance.currentAccessToken;
-      return result?.value;
-    } on PlatformException catch (e) {
-      print(e.message);
-    }
+    // try {
+    //   final result = await LineSDK.instance.currentAccessToken;
+    //   return result?.value;
+    // } on PlatformException catch (e) {
+    //   print(e.message);
+    // }
   }
 
   Future<void> _handleGetContact(GoogleSignInAccount user) async {

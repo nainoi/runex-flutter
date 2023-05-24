@@ -14,23 +14,29 @@ class Welcome extends StatefulWidget {
 }
 
 class _WelcomeState extends State<Welcome> {
-  _intit() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String loggedIn = prefs.getString("token") ?? '';
-    if (loggedIn != '') {
-      Navigator.pushAndRemoveUntil(
-          context, MaterialPageRoute(builder: (_) => Home()), (route) => false);
-    } else {
-      Navigator.pushAndRemoveUntil(context,
-          MaterialPageRoute(builder: (_) => Login()), (route) => false);
-    }
+
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  Future<void> _init() async {
+    final SharedPreferences prefs = await _prefs;
   }
 
   @override
   void initState() {
     super.initState();
+    _init();
+    final Future<String> loggedIn = _prefs.then((SharedPreferences prefs) {
+      return prefs.getString("token") ?? '';
+    });
+    // final String loggedIn = _prefs.getString("token") ?? '';
+    // if (loggedIn != '') {
+    //   Home();
+    // } else {
+      Login();
+    // }
+
     Timer(const Duration(seconds: 1), () {
-      _intit();
+      //_intit();
     });
   }
 
